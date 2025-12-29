@@ -229,7 +229,7 @@ export default function Dashboard() {
                             size="icon"
                             onClick={() => fetchAllBalances(accessTokens)}
                             disabled={loading}
-                            className="group border-none bg-secondary text-secondary-foreground hover:bg-secondary-foreground/10 transition-all duration-300"
+                            className="group border-none bg-secondary text-secondary-foreground hover:bg-secondary-foreground/10 transition-all duration-200"
                         >
                             <RefreshCw className={`h-4 w-4 transition-transform duration-500 group-hover:rotate-[225deg] ${loading ? 'animate-spin' : ''}`} />
                         </Button>
@@ -345,7 +345,7 @@ export default function Dashboard() {
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
                                             ? 'bg-secondary text-foreground shadow-sm font-semibold'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary-foreground/5'
                                             }`}
                                     >
                                         Institution
@@ -356,10 +356,10 @@ export default function Dashboard() {
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
                                             ? 'bg-secondary text-foreground shadow-sm font-semibold'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary-foreground/5'
                                             }`}
                                     >
-                                        Type
+                                        Account Type
                                     </Button>
                                 </div>
                             </div>
