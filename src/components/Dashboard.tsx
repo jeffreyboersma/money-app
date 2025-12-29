@@ -229,9 +229,9 @@ export default function Dashboard() {
                             size="icon"
                             onClick={() => fetchAllBalances(accessTokens)}
                             disabled={loading}
-                            className="border-none bg-secondary text-secondary-foreground hover:bg-muted"
+                            className="group border-none bg-secondary text-secondary-foreground hover:bg-muted/80 transition-all duration-300"
                         >
-                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 transition-transform duration-500 group-hover:rotate-[225deg] ${loading ? 'animate-spin' : ''}`} />
                         </Button>
                     )}
                 </div>
