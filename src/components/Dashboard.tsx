@@ -13,6 +13,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [removingToken, setRemovingToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [sortBy, setSortBy] = useState<'none' | 'institution' | 'type'>('none');
 
     // Load tokens from localStorage on mount
     useEffect(() => {
@@ -129,6 +130,27 @@ export default function Dashboard() {
     };
 
     const totalBalance = allAccounts.reduce((acc, curr) => acc + (curr.balances.current || 0), 0);
+
+    const sortedAccounts = [...allAccounts].sort((a, b) => {
+        if (sortBy === 'institution') {
+            const nameA = a.institution_name || '';
+            const nameB = b.institution_name || '';
+            if (nameA !== nameB) return nameA.localeCompare(nameB);
+            // Secondary sort by name if institution is the same
+            return a.name.localeCompare(b.name);
+        }
+        if (sortBy === 'type') {
+            const typeA = a.subtype || '';
+            const typeB = b.subtype || '';
+            if (typeA !== typeB) return typeA.localeCompare(typeB);
+            // Secondary sort by institution then name
+            const instA = a.institution_name || '';
+            const instB = b.institution_name || '';
+            if (instA !== instB) return instA.localeCompare(instB);
+            return a.name.localeCompare(b.name);
+        }
+        return 0;
+    });
 
     return (
         <div className="space-y-8">
@@ -250,9 +272,49 @@ export default function Dashboard() {
                     </div>
 
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white">Accounts</h3>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h3 className="text-lg font-semibold text-white">Accounts</h3>
+                            <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
+                                <span className="text-xs text-neutral-500 px-2 font-medium uppercase tracking-wider">Sort by:</span>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSortBy('none')}
+                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'none'
+                                                ? 'bg-neutral-800 text-white shadow-sm'
+                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            }`}
+                                    >
+                                        Default
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSortBy('institution')}
+                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
+                                                ? 'bg-neutral-800 text-white shadow-sm'
+                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            }`}
+                                    >
+                                        Institution
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setSortBy('type')}
+                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
+                                                ? 'bg-neutral-800 text-white shadow-sm'
+                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            }`}
+                                    >
+                                        Type
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {allAccounts.map((account: any, idx) => (
+                            {sortedAccounts.map((account: any, idx) => (
                                 <Card key={`${account.account_id}-${idx}`} className="bg-neutral-900 border-neutral-800 shadow-md hover:border-neutral-700 transition-colors">
                                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                         <div className="space-y-1">
