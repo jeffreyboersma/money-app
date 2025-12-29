@@ -175,15 +175,28 @@ export default function Dashboard() {
             const nameA = a.institution_name || '';
             const nameB = b.institution_name || '';
             if (nameA !== nameB) return nameA.localeCompare(nameB);
+
+            // Secondary sort by balance (DESC)
+            const balA = a.balances.current || 0;
+            const balB = b.balances.current || 0;
+            if (balA !== balB) return balB - balA;
+
             return a.name.localeCompare(b.name);
         }
         if (sortBy === 'type') {
             const typeA = a.subtype || '';
             const typeB = b.subtype || '';
             if (typeA !== typeB) return typeA.localeCompare(typeB);
+
+            // Secondary sort by balance (DESC)
+            const balA = a.balances.current || 0;
+            const balB = b.balances.current || 0;
+            if (balA !== balB) return balB - balA;
+
             const instA = a.institution_name || '';
             const instB = b.institution_name || '';
             if (instA !== instB) return instA.localeCompare(instB);
+
             return a.name.localeCompare(b.name);
         }
         return 0;
@@ -203,8 +216,8 @@ export default function Dashboard() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-white">Dashboard</h2>
-                    <p className="text-neutral-400">Manage your finances across multiple institutions.</p>
+                    <h2 className="text-3xl font-thin tracking-wider text-white">Dashboard</h2>
+                    <p className="font-thin tracking-wider text-neutral-400">Manage your finances across multiple institutions.</p>
                 </div>
                 <div className="flex gap-3">
                     <LinkButton onSuccess={handleLinkSuccess} />
@@ -329,8 +342,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                                ? 'bg-neutral-800 text-white shadow-sm'
-                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-800 text-white shadow-sm'
+                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Institution
@@ -340,8 +353,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                                ? 'bg-neutral-800 text-white shadow-sm'
-                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-800 text-white shadow-sm'
+                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Type

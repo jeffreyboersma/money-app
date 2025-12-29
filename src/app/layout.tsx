@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "soldi | Dashboard",
-  description: "View all your account balances in one place.",
+  description: "View all your accounts in one place.",
 };
 
 export default function RootLayout({
