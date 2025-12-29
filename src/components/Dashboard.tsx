@@ -6,6 +6,45 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const AccountCard = ({ account }: { account: any }) => (
+    <Card className="bg-neutral-900 border-neutral-800 shadow-md hover:border-neutral-700 transition-colors">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="space-y-1">
+                <CardTitle className="text-sm font-medium text-white">{account.name}</CardTitle>
+                <p className="text-xs text-neutral-500 capitalize">{account.subtype}</p>
+            </div>
+            {account.institution_logo ? (
+                <div className="w-8 h-8 flex items-center justify-center">
+                    <img
+                        src={`data:image/png;base64,${account.institution_logo}`}
+                        alt={account.institution_name}
+                        className="max-w-full max-h-full object-contain"
+                    />
+                </div>
+            ) : (
+                <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-neutral-400" />
+                </div>
+            )}
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold text-white">
+                ${account.balances.current?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </div>
+            <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-neutral-500">
+                    Ending in {account.mask}
+                </p>
+                {account.balances.available !== null && (
+                    <p className="text-[10px] text-neutral-600">
+                        Avail: ${account.balances.available.toLocaleString()}
+                    </p>
+                )}
+            </div>
+        </CardContent>
+    </Card>
+);
+
 export default function Dashboard() {
     const [accessTokens, setAccessTokens] = useState<string[]>([]);
     const [allAccounts, setAllAccounts] = useState<any[]>([]);
@@ -152,6 +191,16 @@ export default function Dashboard() {
         return 0;
     });
 
+    const groupedAccounts = sortBy === 'none' ? null : sortedAccounts.reduce((acc: Record<string, any[]>, account) => {
+        const key = sortBy === 'institution'
+            ? (account.institution_name || 'Other Institutions')
+            : (account.subtype ? account.subtype.charAt(0).toUpperCase() + account.subtype.slice(1) : 'Other');
+
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(account);
+        return acc;
+    }, {});
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -282,8 +331,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('none')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'none'
-                                                ? 'bg-neutral-800 text-white shadow-sm'
-                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-800 text-white shadow-sm'
+                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Default
@@ -293,8 +342,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                                ? 'bg-neutral-800 text-white shadow-sm'
-                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-800 text-white shadow-sm'
+                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Institution
@@ -304,8 +353,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                                ? 'bg-neutral-800 text-white shadow-sm'
-                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-neutral-800 text-white shadow-sm'
+                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Type
@@ -313,46 +362,30 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {sortedAccounts.map((account: any, idx) => (
-                                <Card key={`${account.account_id}-${idx}`} className="bg-neutral-900 border-neutral-800 shadow-md hover:border-neutral-700 transition-colors">
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <div className="space-y-1">
-                                            <CardTitle className="text-sm font-medium text-white">{account.name}</CardTitle>
-                                            <p className="text-xs text-neutral-500 capitalize">{account.subtype}</p>
+
+                        {groupedAccounts ? (
+                            <div className="space-y-8">
+                                {Object.entries(groupedAccounts).map(([groupName, accounts]) => (
+                                    <div key={groupName} className="space-y-4">
+                                        <div className="flex items-center gap-4">
+                                            <h4 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">{groupName}</h4>
+                                            <div className="h-[1px] flex-1 bg-neutral-800"></div>
                                         </div>
-                                        {account.institution_logo ? (
-                                            <div className="w-8 h-8 flex items-center justify-center">
-                                                <img
-                                                    src={`data:image/png;base64,${account.institution_logo}`}
-                                                    alt={account.institution_name}
-                                                    className="max-w-full max-h-full object-contain"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center">
-                                                <Building2 className="h-4 w-4 text-neutral-400" />
-                                            </div>
-                                        )}
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="text-2xl font-bold text-white">
-                                            ${account.balances.current?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                            {accounts.map((account: any, idx) => (
+                                                <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                            ))}
                                         </div>
-                                        <div className="flex justify-between items-center mt-2">
-                                            <p className="text-xs text-neutral-500">
-                                                Ending in {account.mask}
-                                            </p>
-                                            {account.balances.available !== null && (
-                                                <p className="text-[10px] text-neutral-600">
-                                                    Avail: ${account.balances.available.toLocaleString()}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {allAccounts.map((account: any, idx) => (
+                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
