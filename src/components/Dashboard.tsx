@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 
 const AccountCard = ({ account }: { account: any }) => (
-    <Card className="bg-card border-border hover:border-accent transition-colors">
+    <Card className="hover:border-accent transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="space-y-1">
                 <CardTitle className="text-sm font-medium text-foreground">{account.name}</CardTitle>
@@ -229,7 +229,7 @@ export default function Dashboard() {
                             size="icon"
                             onClick={() => fetchAllBalances(accessTokens)}
                             disabled={loading}
-                            className="border-none bg-neutral-700 text-white hover:bg-neutral-800 hover:text-white"
+                            className="border-none bg-secondary text-secondary-foreground hover:bg-muted"
                         >
                             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         </Button>
@@ -245,7 +245,7 @@ export default function Dashboard() {
             )}
 
             {accessTokens.length === 0 && !loading && (
-                <Card className="max-w-md mx-auto bg-card border-border">
+                <Card className="max-w-md mx-auto">
                     <CardHeader className="text-center">
                         <div className="mx-auto w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
                             <Wallet className="h-6 w-6 text-muted-foreground" />
@@ -264,7 +264,7 @@ export default function Dashboard() {
             {allAccounts.length > 0 && (
                 <div className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-3">
-                        <Card className="bg-card border-border">
+                        <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
                             </CardHeader>
@@ -274,7 +274,7 @@ export default function Dashboard() {
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-card border-border">
+                        <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Linked Institutions</CardTitle>
                             </CardHeader>
@@ -282,7 +282,7 @@ export default function Dashboard() {
                                 <div className="text-3xl font-bold text-foreground">{accessTokens.length}</div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-card border-border">
+                        <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Active Accounts</CardTitle>
                             </CardHeader>
@@ -296,7 +296,7 @@ export default function Dashboard() {
                         <h3 className="text-lg font-semibold text-foreground">Linked Institutions</h3>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {Object.entries(institutions).map(([token, info]) => (
-                                <Card key={token} className="bg-card border-border">
+                                <Card key={token}>
                                     <div className="p-4 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             {info.logo ? (
@@ -336,7 +336,7 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
-                            <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
+                            <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
                                 <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Sort by:</span>
                                 <div className="flex gap-1">
                                     <Button
