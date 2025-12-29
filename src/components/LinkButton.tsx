@@ -48,7 +48,7 @@ export default function LinkButton({ onSuccess }: LinkButtonProps) {
         <Button
             onClick={() => open()}
             disabled={!ready || loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center gap-2"
+            className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center gap-2"
         >
             {(loading || !ready) && <Loader2 className="h-4 w-4 animate-spin" />}
             {loading ? 'Initializing Plaid...' : 'Connect an Account'}
