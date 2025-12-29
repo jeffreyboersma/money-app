@@ -5,13 +5,14 @@ import LinkButton from './LinkButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './ThemeToggle';
 
 const AccountCard = ({ account }: { account: any }) => (
-    <Card className="bg-neutral-900 border-neutral-800 shadow-md hover:border-neutral-700 transition-colors">
+    <Card className="bg-card border-border hover:border-accent transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="space-y-1">
-                <CardTitle className="text-sm font-medium text-white">{account.name}</CardTitle>
-                <p className="text-xs text-neutral-500 uppercase">{account.subtype}</p>
+                <CardTitle className="text-sm font-medium text-foreground">{account.name}</CardTitle>
+                <p className="text-xs text-muted-foreground uppercase">{account.subtype}</p>
             </div>
             {account.institution_logo ? (
                 <div className="w-8 h-8 flex items-center justify-center">
@@ -22,21 +23,21 @@ const AccountCard = ({ account }: { account: any }) => (
                     />
                 </div>
             ) : (
-                <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-neutral-400" />
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
                 </div>
             )}
         </CardHeader>
         <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
                 ${account.balances.current?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="flex justify-between items-center mt-2">
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                     Ending in {account.mask}
                 </p>
                 {account.balances.available !== null && (
-                    <p className="text-[10px] text-neutral-600">
+                    <p className="text-[10px] text-muted-foreground/60">
                         Avail: ${account.balances.available.toLocaleString()}
                     </p>
                 )}
@@ -216,10 +217,11 @@ export default function Dashboard() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-thin tracking-wider text-white">Dashboard</h2>
-                    <p className="font-thin tracking-wider text-neutral-400">Manage your finances across multiple institutions.</p>
+                    <h2 className="text-3xl font-thin tracking-wider text-foreground">Dashboard</h2>
+                    <p className="font-thin tracking-wider text-muted-foreground">Manage your finances across multiple institutions.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-3">
+                    <ThemeToggle />
                     <LinkButton onSuccess={handleLinkSuccess} />
                     {accessTokens.length > 0 && (
                         <Button
@@ -243,13 +245,13 @@ export default function Dashboard() {
             )}
 
             {accessTokens.length === 0 && !loading && (
-                <Card className="max-w-md mx-auto bg-neutral-900 border-neutral-800 shadow-xl">
+                <Card className="max-w-md mx-auto bg-card border-border">
                     <CardHeader className="text-center">
-                        <div className="mx-auto w-12 h-12 bg-neutral-800 rounded-full flex items-center justify-center mb-4">
-                            <Wallet className="h-6 w-6 text-neutral-400" />
+                        <div className="mx-auto w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
+                            <Wallet className="h-6 w-6 text-muted-foreground" />
                         </div>
-                        <CardTitle className="text-2xl text-white">Connect your first bank</CardTitle>
-                        <CardDescription className="text-neutral-400">
+                        <CardTitle className="text-2xl text-foreground">Connect your first bank</CardTitle>
+                        <CardDescription className="text-muted-foreground">
                             Link your financial accounts to see all your balances and transactions in one place.
                         </CardDescription>
                     </CardHeader>
@@ -262,39 +264,39 @@ export default function Dashboard() {
             {allAccounts.length > 0 && (
                 <div className="space-y-6">
                     <div className="grid gap-4 md:grid-cols-3">
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
+                        <Card className="bg-card border-border">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-neutral-400">Total Net Worth</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-white">
+                                <div className="text-3xl font-bold text-foreground">
                                     ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
+                        <Card className="bg-card border-border">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-neutral-400">Linked Institutions</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Linked Institutions</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-white">{accessTokens.length}</div>
+                                <div className="text-3xl font-bold text-foreground">{accessTokens.length}</div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-neutral-900 border-neutral-800 shadow-lg">
+                        <Card className="bg-card border-border">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-neutral-400">Active Accounts</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Active Accounts</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-white">{allAccounts.length}</div>
+                                <div className="text-3xl font-bold text-foreground">{allAccounts.length}</div>
                             </CardContent>
                         </Card>
                     </div>
 
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-white">Linked Institutions</h3>
+                        <h3 className="text-lg font-semibold text-foreground">Linked Institutions</h3>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {Object.entries(institutions).map(([token, info]) => (
-                                <Card key={token} className="bg-neutral-900 border-neutral-800 shadow-md">
+                                <Card key={token} className="bg-card border-border">
                                     <div className="p-4 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             {info.logo ? (
@@ -306,18 +308,18 @@ export default function Dashboard() {
                                                     />
                                                 </div>
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center">
-                                                    <Building2 className="h-4 w-4 text-neutral-400" />
+                                                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                                                    <Building2 className="h-4 w-4 text-muted-foreground" />
                                                 </div>
                                             )}
-                                            <span className="font-medium text-white">{info.name}</span>
+                                            <span className="font-medium text-foreground">{info.name}</span>
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => handleRemoveInstitution(token)}
                                             disabled={removingToken === token}
-                                            className="text-neutral-500 hover:text-red-400 hover:bg-red-400/10"
+                                            className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
                                         >
                                             {removingToken === token ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -333,17 +335,17 @@ export default function Dashboard() {
 
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <h3 className="text-lg font-semibold text-white">Accounts</h3>
-                            <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
-                                <span className="text-xs text-neutral-500 px-2 font-medium uppercase tracking-wider">Sort by:</span>
+                            <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
+                            <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
+                                <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Sort by:</span>
                                 <div className="flex gap-1">
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                            ? 'bg-neutral-800 text-white shadow-sm'
-                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-secondary text-foreground shadow-sm font-semibold'
+                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                             }`}
                                     >
                                         Institution
@@ -353,8 +355,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                            ? 'bg-neutral-800 text-white shadow-sm'
-                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                            ? 'bg-secondary text-foreground shadow-sm font-semibold'
+                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                             }`}
                                     >
                                         Type
@@ -367,8 +369,8 @@ export default function Dashboard() {
                             {Object.entries(groupedAccounts).map(([groupName, accounts]) => (
                                 <div key={groupName} className="space-y-4">
                                     <div className="flex items-center gap-4">
-                                        <h4 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">{groupName}</h4>
-                                        <div className="h-[1px] flex-1 bg-neutral-800"></div>
+                                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{groupName}</h4>
+                                        <div className="h-[1px] flex-1 bg-border"></div>
                                     </div>
                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                         {accounts.map((account: any, idx) => (
