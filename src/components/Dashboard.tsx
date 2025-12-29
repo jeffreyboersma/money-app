@@ -52,7 +52,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(false);
     const [removingToken, setRemovingToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [sortBy, setSortBy] = useState<'none' | 'institution' | 'type'>('none');
+    const [sortBy, setSortBy] = useState<'institution' | 'type'>('institution');
 
     // Load tokens from localStorage on mount
     useEffect(() => {
@@ -175,14 +175,12 @@ export default function Dashboard() {
             const nameA = a.institution_name || '';
             const nameB = b.institution_name || '';
             if (nameA !== nameB) return nameA.localeCompare(nameB);
-            // Secondary sort by name if institution is the same
             return a.name.localeCompare(b.name);
         }
         if (sortBy === 'type') {
             const typeA = a.subtype || '';
             const typeB = b.subtype || '';
             if (typeA !== typeB) return typeA.localeCompare(typeB);
-            // Secondary sort by institution then name
             const instA = a.institution_name || '';
             const instB = b.institution_name || '';
             if (instA !== instB) return instA.localeCompare(instB);
@@ -191,7 +189,7 @@ export default function Dashboard() {
         return 0;
     });
 
-    const groupedAccounts = sortBy === 'none' ? null : sortedAccounts.reduce((acc: Record<string, any[]>, account) => {
+    const groupedAccounts = sortedAccounts.reduce((acc: Record<string, any[]>, account) => {
         const key = sortBy === 'institution'
             ? (account.institution_name || 'Other Institutions')
             : (account.subtype ? account.subtype.charAt(0).toUpperCase() + account.subtype.slice(1) : 'Other');
@@ -329,21 +327,10 @@ export default function Dashboard() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setSortBy('none')}
-                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'none'
-                                            ? 'bg-neutral-800 text-white shadow-sm'
-                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
-                                            }`}
-                                    >
-                                        Default
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                            ? 'bg-neutral-800 text-white shadow-sm'
-                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                                ? 'bg-neutral-800 text-white shadow-sm'
+                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Institution
@@ -353,8 +340,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                            ? 'bg-neutral-800 text-white shadow-sm'
-                                            : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
+                                                ? 'bg-neutral-800 text-white shadow-sm'
+                                                : 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800/50'
                                             }`}
                                     >
                                         Type
@@ -363,29 +350,21 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {groupedAccounts ? (
-                            <div className="space-y-8">
-                                {Object.entries(groupedAccounts).map(([groupName, accounts]) => (
-                                    <div key={groupName} className="space-y-4">
-                                        <div className="flex items-center gap-4">
-                                            <h4 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">{groupName}</h4>
-                                            <div className="h-[1px] flex-1 bg-neutral-800"></div>
-                                        </div>
-                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                            {accounts.map((account: any, idx) => (
-                                                <AccountCard key={`${account.account_id}-${idx}`} account={account} />
-                                            ))}
-                                        </div>
+                        <div className="space-y-8">
+                            {Object.entries(groupedAccounts).map(([groupName, accounts]) => (
+                                <div key={groupName} className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <h4 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">{groupName}</h4>
+                                        <div className="h-[1px] flex-1 bg-neutral-800"></div>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {allAccounts.map((account: any, idx) => (
-                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
-                                ))}
-                            </div>
-                        )}
+                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                        {accounts.map((account: any, idx) => (
+                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
@@ -399,4 +378,3 @@ export default function Dashboard() {
         </div>
     );
 }
-
