@@ -11,7 +11,7 @@ const AccountCard = ({ account }: { account: any }) => (
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="space-y-1">
                 <CardTitle className="text-sm font-medium text-white">{account.name}</CardTitle>
-                <p className="text-xs text-neutral-500 capitalize">{account.subtype}</p>
+                <p className="text-xs text-neutral-500 uppercase">{account.subtype}</p>
             </div>
             {account.institution_logo ? (
                 <div className="w-8 h-8 flex items-center justify-center">

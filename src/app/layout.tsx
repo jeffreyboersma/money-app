@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Money App | Dashboard",
+  title: "soldi | Dashboard",
   description: "View all your account balances in one place.",
 };
 

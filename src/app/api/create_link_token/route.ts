@@ -20,9 +20,9 @@ export async function POST() {
 
         const configs: any = {
             user: {
-                client_user_id: 'money-app-user-unique-id', // Unique ID representing your user
+                client_user_id: 'soldi-user-unique-id', // Unique ID representing your user
             },
-            client_name: 'Money App',
+            client_name: 'soldi',
             products: products,
             country_codes: countryCodes,
             language: 'en',
