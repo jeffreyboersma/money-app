@@ -3,9 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import LinkButton from './LinkButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const formatCurrency = (amount: number) => {
     const isNegative = amount < 0;
@@ -318,7 +319,19 @@ export default function Dashboard() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash & Investments</CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash & Investments</CardTitle>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Includes all checking, savings, and investment accounts.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-foreground">
@@ -328,7 +341,19 @@ export default function Dashboard() {
                         </Card>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Calculated as (Cash + Investments) - (Credit Cards + Loans). Other account types are excluded.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-foreground">
