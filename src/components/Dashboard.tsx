@@ -195,6 +195,13 @@ export default function Dashboard() {
         });
     };
 
+    const cashAndInvestmentsBalance = allAccounts.reduce((acc, curr) => {
+        if (curr.type === 'depository' || curr.type === 'investment') {
+            return acc + (curr.balances.current || 0);
+        }
+        return acc;
+    }, 0);
+
     const totalBalance = allAccounts.reduce((acc, curr) => {
         if (curr.type === 'other') return acc;
         const balance = curr.balances.current || 0;
@@ -263,7 +270,7 @@ export default function Dashboard() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-thin tracking-wider text-foreground">Dashboard</h2>
-                    <p className="font-thin tracking-wider text-muted-foreground">Manage your finances across multiple institutions.</p>
+                    <p className="font-thin tracking-wider text-muted-foreground">Get a clear picture of your finances.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <ThemeToggle />
@@ -308,7 +315,17 @@ export default function Dashboard() {
 
             {allAccounts.length > 0 && (
                 <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash & Investments</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-foreground">
+                                    {formatCurrency(cashAndInvestmentsBalance)}
+                                </div>
+                            </CardContent>
+                        </Card>
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
