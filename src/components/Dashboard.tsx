@@ -429,25 +429,39 @@ export default function Dashboard() {
                                         {!isCollapsed && (
                                             <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
                                                 {isNested ? (
-                                                    Object.entries(groupData).map(([subtypeName, accounts]: [string, any]) => (
-                                                        <div key={subtypeName} className="space-y-4 ml-6">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-px w-4 bg-muted-foreground/20"></div>
-                                                                <h5 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest">
-                                                                    {subtypeName}
-                                                                    <span className="ml-2 font-normal lowercase tracking-normal opacity-60">
-                                                                        ({accounts.length})
-                                                                    </span>
-                                                                </h5>
-                                                                <div className="h-px flex-1 bg-muted-foreground/10"></div>
+                                                    Object.entries(groupData).map(([subtypeName, accounts]: [string, any]) => {
+                                                        const subSectionKey = `${groupName}:${subtypeName}`;
+                                                        const isSubCollapsed = collapsedSections.has(subSectionKey);
+                                                        return (
+                                                            <div key={subtypeName} className="space-y-4 ml-6">
+                                                                <button
+                                                                    onClick={() => toggleSection(subSectionKey)}
+                                                                    className="flex items-center gap-3 w-full group/sub focus:outline-none"
+                                                                >
+                                                                    <div className="h-px bg-muted-foreground/20 group-hover/sub:bg-muted-foreground/40 transition-colors"></div>
+                                                                    {isSubCollapsed ? (
+                                                                        <ChevronRight className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
+                                                                    ) : (
+                                                                        <ChevronDown className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
+                                                                    )}
+                                                                    <h5 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest group-hover/sub:text-foreground transition-colors">
+                                                                        {subtypeName}
+                                                                        <span className="ml-2 font-normal lowercase tracking-normal opacity-60">
+                                                                            ({accounts.length})
+                                                                        </span>
+                                                                    </h5>
+                                                                    <div className="h-px flex-1 bg-muted-foreground/10 group-hover/sub:bg-muted-foreground/20 transition-colors"></div>
+                                                                </button>
+                                                                {!isSubCollapsed && (
+                                                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                        {accounts.map((account: any, idx: number) => (
+                                                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                                                {accounts.map((account: any, idx: number) => (
-                                                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))
+                                                        );
+                                                    })
                                                 ) : (
                                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                                         {groupData.map((account: any, idx: number) => (
