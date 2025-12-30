@@ -7,6 +7,15 @@ import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 
+const formatCurrency = (amount: number) => {
+    const isNegative = amount < 0;
+    const formatted = Math.abs(amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+    return isNegative ? `-$${formatted}` : `$${formatted}`;
+};
+
 const AccountCard = ({ account }: { account: any }) => (
     <Card className="hover:border-accent transition-colors">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -34,7 +43,7 @@ const AccountCard = ({ account }: { account: any }) => (
         </CardHeader>
         <CardContent>
             <div className="text-2xl font-bold text-foreground">
-                ${account.balances.current?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {formatCurrency(account.balances.current)}
             </div>
             <div className="flex justify-between items-center mt-2">
                 <p className="text-xs text-muted-foreground">
@@ -42,7 +51,7 @@ const AccountCard = ({ account }: { account: any }) => (
                 </p>
                 {account.balances.available !== null && (
                     <p className="text-[10px] text-muted-foreground/60">
-                        Avail: ${account.balances.available.toLocaleString()}
+                        Avail: {formatCurrency(account.balances.available)}
                     </p>
                 )}
             </div>
@@ -306,7 +315,7 @@ export default function Dashboard() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold text-foreground">
-                                    ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    {formatCurrency(totalBalance)}
                                 </div>
                             </CardContent>
                         </Card>
