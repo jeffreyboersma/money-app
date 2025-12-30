@@ -202,11 +202,17 @@ export default function Dashboard() {
             return a.name.localeCompare(b.name);
         }
         if (sortBy === 'type') {
-            const typeA = a.subtype || '';
-            const typeB = b.subtype || '';
+            // Sort by type first
+            const typeA = a.type || '';
+            const typeB = b.type || '';
             if (typeA !== typeB) return typeA.localeCompare(typeB);
 
-            // Secondary sort by balance (DESC)
+            // Then by subtype
+            const subtypeA = a.subtype || '';
+            const subtypeB = b.subtype || '';
+            if (subtypeA !== subtypeB) return subtypeA.localeCompare(subtypeB);
+
+            // Then by balance (DESC)
             const balA = a.balances.current || 0;
             const balB = b.balances.current || 0;
             if (balA !== balB) return balB - balA;
@@ -220,13 +226,19 @@ export default function Dashboard() {
         return 0;
     });
 
-    const groupedAccounts = sortedAccounts.reduce((acc: Record<string, any[]>, account) => {
-        const key = sortBy === 'institution'
-            ? (account.institution_name || 'Other Institutions')
-            : (account.subtype ? account.subtype.charAt(0).toUpperCase() + account.subtype.slice(1) : 'Other');
+    const groupedAccounts = sortedAccounts.reduce((acc: any, account) => {
+        if (sortBy === 'institution') {
+            const key = account.institution_name || 'Other Institutions';
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(account);
+        } else {
+            const typeKey = account.type ? account.type.charAt(0).toUpperCase() + account.type.slice(1) : 'Other';
+            const subtypeKey = account.subtype ? account.subtype.charAt(0).toUpperCase() + account.subtype.slice(1) : 'Other';
 
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(account);
+            if (!acc[typeKey]) acc[typeKey] = {};
+            if (!acc[typeKey][subtypeKey]) acc[typeKey][subtypeKey] = [];
+            acc[typeKey][subtypeKey].push(account);
+        }
         return acc;
     }, {});
 
@@ -385,10 +397,15 @@ export default function Dashboard() {
                         </div>
 
                         <div className="space-y-8">
-                            {Object.entries(groupedAccounts).map(([groupName, accounts]) => {
+                            {Object.entries(groupedAccounts).map(([groupName, groupData]: [string, any]) => {
                                 const isCollapsed = collapsedSections.has(groupName);
+                                const isNested = sortBy === 'type';
+                                const totalAccounts = isNested
+                                    ? Object.values(groupData).reduce((sum: number, sub: any) => sum + sub.length, 0)
+                                    : groupData.length;
+
                                 return (
-                                    <div key={groupName} className="space-y-4">
+                                    <div key={groupName} className="space-y-6">
                                         <button
                                             onClick={() => toggleSection(groupName)}
                                             className="flex items-center gap-4 w-full group/header focus:outline-none"
@@ -400,19 +417,44 @@ export default function Dashboard() {
                                                     <ChevronDown className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
                                                 )}
                                                 <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider group-hover/header:text-foreground transition-colors">
-                                                    {groupName}
+                                                    {groupName === 'Depository' ? 'Cash & Checking' : groupName}
                                                     <span className="ml-2 text-[10px] font-normal lowercase tracking-normal opacity-60">
-                                                        ({accounts.length} {accounts.length === 1 ? 'account' : 'accounts'})
+                                                        ({totalAccounts} {totalAccounts === 1 ? 'account' : 'accounts'})
                                                     </span>
                                                 </h4>
                                             </div>
                                             <div className="h-[1px] flex-1 bg-border group-hover/header:bg-muted-foreground/30 transition-colors"></div>
                                         </button>
+
                                         {!isCollapsed && (
-                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                {accounts.map((account: any, idx) => (
-                                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
-                                                ))}
+                                            <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {isNested ? (
+                                                    Object.entries(groupData).map(([subtypeName, accounts]: [string, any]) => (
+                                                        <div key={subtypeName} className="space-y-4 ml-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-px w-4 bg-muted-foreground/20"></div>
+                                                                <h5 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest">
+                                                                    {subtypeName}
+                                                                    <span className="ml-2 font-normal lowercase tracking-normal opacity-60">
+                                                                        ({accounts.length})
+                                                                    </span>
+                                                                </h5>
+                                                                <div className="h-px flex-1 bg-muted-foreground/10"></div>
+                                                            </div>
+                                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                                                {accounts.map((account: any, idx: number) => (
+                                                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                                        {groupData.map((account: any, idx: number) => (
+                                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
