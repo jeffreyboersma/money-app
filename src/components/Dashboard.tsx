@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import LinkButton from './LinkButton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2 } from 'lucide-react';
+import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -58,6 +58,7 @@ export default function Dashboard() {
     const [removingToken, setRemovingToken] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<'institution' | 'type'>('institution');
+    const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
     // Load tokens from localStorage on mount
     useEffect(() => {
@@ -173,6 +174,18 @@ export default function Dashboard() {
         }
     };
 
+    const toggleSection = (sectionName: string) => {
+        setCollapsedSections(prev => {
+            const next = new Set(prev);
+            if (next.has(sectionName)) {
+                next.delete(sectionName);
+            } else {
+                next.add(sectionName);
+            }
+            return next;
+        });
+    };
+
     const totalBalance = allAccounts.reduce((acc, curr) => acc + (curr.balances.current || 0), 0);
 
     const sortedAccounts = [...allAccounts].sort((a, b) => {
@@ -252,7 +265,7 @@ export default function Dashboard() {
                 <Card className="max-w-md mx-auto">
                     <CardHeader className="text-center">
                         <div className="mx-auto w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
-                            <Wallet className="h-6 w-6 text-muted-foreground" />
+                            <Building2 className="h-6 w-6 text-muted-foreground" />
                         </div>
                         <CardTitle className="text-2xl text-foreground">Connect your first bank</CardTitle>
                         <CardDescription className="text-muted-foreground">
@@ -370,19 +383,39 @@ export default function Dashboard() {
                         </div>
 
                         <div className="space-y-8">
-                            {Object.entries(groupedAccounts).map(([groupName, accounts]) => (
-                                <div key={groupName} className="space-y-4">
-                                    <div className="flex items-center gap-4">
-                                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{groupName}</h4>
-                                        <div className="h-[1px] flex-1 bg-border"></div>
+                            {Object.entries(groupedAccounts).map(([groupName, accounts]) => {
+                                const isCollapsed = collapsedSections.has(groupName);
+                                return (
+                                    <div key={groupName} className="space-y-4">
+                                        <button
+                                            onClick={() => toggleSection(groupName)}
+                                            className="flex items-center gap-4 w-full group/header focus:outline-none"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {isCollapsed ? (
+                                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
+                                                )}
+                                                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider group-hover/header:text-foreground transition-colors">
+                                                    {groupName}
+                                                    <span className="ml-2 text-[10px] font-normal lowercase tracking-normal opacity-60">
+                                                        ({accounts.length} {accounts.length === 1 ? 'account' : 'accounts'})
+                                                    </span>
+                                                </h4>
+                                            </div>
+                                            <div className="h-[1px] flex-1 bg-border group-hover/header:bg-muted-foreground/30 transition-colors"></div>
+                                        </button>
+                                        {!isCollapsed && (
+                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {accounts.map((account: any, idx) => (
+                                                    <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                        {accounts.map((account: any, idx) => (
-                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
