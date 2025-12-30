@@ -186,7 +186,14 @@ export default function Dashboard() {
         });
     };
 
-    const totalBalance = allAccounts.reduce((acc, curr) => acc + (curr.balances.current || 0), 0);
+    const totalBalance = allAccounts.reduce((acc, curr) => {
+        if (curr.type === 'other') return acc;
+        const balance = curr.balances.current || 0;
+        if (curr.type === 'loan' || curr.type === 'credit') {
+            return acc - balance;
+        }
+        return acc + balance;
+    }, 0);
 
     const sortedAccounts = [...allAccounts].sort((a, b) => {
         if (sortBy === 'institution') {
