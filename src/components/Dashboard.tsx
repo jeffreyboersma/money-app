@@ -312,41 +312,43 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-foreground">Linked Institutions</h3>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {Object.entries(institutions).map(([token, info]) => (
-                                <Card key={token}>
-                                    <div className="p-4 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            {info.logo ? (
-                                                <div className="w-10 h-10 flex items-center justify-center">
-                                                    <img
-                                                        src={`data:image/png;base64,${info.logo}`}
-                                                        alt={info.name}
-                                                        className="max-w-full max-h-full object-contain"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                                                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                            <span className="font-medium text-foreground">{info.name}</span>
+                            {Object.entries(institutions)
+                                .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+                                .map(([token, info]) => (
+                                    <Card key={token}>
+                                        <div className="p-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                {info.logo ? (
+                                                    <div className="w-10 h-10 flex items-center justify-center">
+                                                        <img
+                                                            src={`data:image/png;base64,${info.logo}`}
+                                                            alt={info.name}
+                                                            className="max-w-full max-h-full object-contain"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                                                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <span className="font-medium text-foreground">{info.name}</span>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleRemoveInstitution(token)}
+                                                disabled={removingToken === token}
+                                                className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                                            >
+                                                {removingToken === token ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </Button>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleRemoveInstitution(token)}
-                                            disabled={removingToken === token}
-                                            className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                                        >
-                                            {removingToken === token ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Trash2 className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                    </div>
-                                </Card>
-                            ))}
+                                    </Card>
+                                ))}
                         </div>
                     </div>
 
