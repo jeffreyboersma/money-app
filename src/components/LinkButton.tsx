@@ -39,14 +39,25 @@ export default function LinkButton({ onSuccess }: LinkButtonProps) {
 
     const config: PlaidLinkOptions = {
         token: token!,
-        onSuccess: handleOnSuccess,
+        onSuccess: (public_token: string) => {
+            document.documentElement.classList.remove('plaid-active');
+            handleOnSuccess(public_token);
+        },
+        onExit: () => {
+            document.documentElement.classList.remove('plaid-active');
+        },
     };
 
     const { open, ready } = usePlaidLink(config);
 
+    const handleOpen = useCallback(() => {
+        document.documentElement.classList.add('plaid-active');
+        open();
+    }, [open]);
+
     return (
         <Button
-            onClick={() => open()}
+            onClick={handleOpen}
             disabled={!ready || loading}
             className="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center gap-2"
         >
