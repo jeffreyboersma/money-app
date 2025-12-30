@@ -356,7 +356,7 @@ export default function Dashboard() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
                             <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
-                                <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Sort by:</span>
+                                <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Group by:</span>
                                 <div className="flex gap-1">
                                     <Button
                                         variant="ghost"
