@@ -49,9 +49,18 @@ interface AccountDetailsModalProps {
   onClose: () => void;
   accountId: string | null;
   accessTokens: string[];
+  institutionName?: string;
+  institutionLogo?: string;
 }
 
-export default function AccountDetailsModal({ isOpen, onClose, accountId, accessTokens }: AccountDetailsModalProps) {
+export default function AccountDetailsModal({ 
+  isOpen, 
+  onClose, 
+  accountId, 
+  accessTokens,
+  institutionName,
+  institutionLogo 
+}: AccountDetailsModalProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AccountData | null>(null);
@@ -153,9 +162,29 @@ export default function AccountDetailsModal({ isOpen, onClose, accountId, access
                     <h2 className="text-xl font-bold">Account Details</h2>
                  )}
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-4">
+                {(institutionName || institutionLogo) && (
+                    <div className="flex items-center gap-2 border-r pr-4 mr-2 border-border/50">
+                        {institutionLogo && (
+                             <div className="w-8 h-8 flex items-center justify-center">
+                                <img
+                                    src={`data:image/png;base64,${institutionLogo}`}
+                                    alt={institutionName || 'Institution'}
+                                    className="max-w-full max-h-full object-contain"
+                                />
+                            </div>
+                        )}
+                        {institutionName && (
+                            <span className="text-sm font-medium text-muted-foreground">
+                                {institutionName}
+                            </span>
+                        )}
+                    </div>
+                )}
+                <Button variant="ghost" size="icon" onClick={onClose}>
+                    <X className="h-5 w-5" />
+                </Button>
+            </div>
         </div>
 
         <div className="p-6 space-y-6">

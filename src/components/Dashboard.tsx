@@ -74,6 +74,9 @@ export default function Dashboard() {
     const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
     const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
+    // Find the selected account object to pass inst data
+    const selectedAccount = allAccounts.find(acc => acc.account_id === selectedAccountId);
+
     // Load tokens from localStorage on mount
     useEffect(() => {
         const savedTokens = localStorage.getItem('plaid_access_tokens');
@@ -561,6 +564,8 @@ export default function Dashboard() {
                 onClose={() => setSelectedAccountId(null)}
                 accountId={selectedAccountId}
                 accessTokens={accessTokens}
+                institutionName={selectedAccount?.institution_name}
+                institutionLogo={selectedAccount?.institution_logo}
             />
         </div>
     );
