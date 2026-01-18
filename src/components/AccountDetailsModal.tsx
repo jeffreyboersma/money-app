@@ -5,11 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { X, Loader2 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  AreaChart,
+  Area,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
@@ -200,6 +197,15 @@ export default function AccountDetailsModal({
     }).format(amount);
   };
 
+  const chartColor = React.useMemo(() => {
+    if (balanceHistory.length < 2) return '#9ca3af';
+    const first = balanceHistory[0].balance;
+    const last = balanceHistory[balanceHistory.length - 1].balance;
+    if (last > first) return '#22c55e';
+    if (last < first) return '#ef4444';
+    return '#9ca3af';
+  }, [balanceHistory]);
+
   if (!isOpen) return null;
 
   return (
@@ -287,33 +293,27 @@ export default function AccountDetailsModal({
                         <div className="h-[300px] w-full">
                             {(data || balanceHistory.length > 0) ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={balanceHistory}>
-                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                        <XAxis 
-                                            dataKey="date" 
-                                            tickFormatter={(str) => {
-                                                const date = new Date(str);
-                                                return `${date.getMonth() + 1}/${date.getDate()}`;
-                                            }}
-                                            minTickGap={30}
-                                        />
-                                        <YAxis 
-                                            domain={['auto', 'auto']}
-                                            tickFormatter={(val) => `$${val}`}
-                                        />
+                                    <AreaChart data={balanceHistory}>
+                                        <defs>
+                                            <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
                                             formatter={(value: number | undefined) => value !== undefined ? [`$${value.toFixed(2)}`, 'Balance'] : ['N/A', 'Balance']}
                                             labelFormatter={(label) => new Date(label).toLocaleDateString()}
                                         />
-                                        <Line 
+                                        <Area 
                                             type="monotone" 
                                             dataKey="balance" 
-                                            stroke="#2563eb" 
+                                            stroke={chartColor} 
                                             strokeWidth={2}
-                                            dot={false}
+                                            fillOpacity={1}
+                                            fill="url(#colorBalance)"
                                         />
-                                    </LineChart>
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="h-full w-full flex items-center justify-center text-muted-foreground">
