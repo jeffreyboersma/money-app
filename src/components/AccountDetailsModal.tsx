@@ -601,8 +601,14 @@ NEWFILEUID:NONE
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-background rounded-lg shadow-xl border">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-background rounded-lg shadow-xl border"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b bg-background/95 backdrop-blursupports-[backdrop-filter]:bg-background/60">
             <div>
