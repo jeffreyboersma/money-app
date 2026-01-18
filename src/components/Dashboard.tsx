@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import LinkButton from './LinkButton';
+import AccountDetailsModal from './AccountDetailsModal';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,47 +18,49 @@ const formatCurrency = (amount: number) => {
     return isNegative ? `-$${formatted}` : `$${formatted}`;
 };
 
-const AccountCard = ({ account }: { account: any }) => (
-    <Card className="hover:border-accent transition-colors">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="space-y-1">
-                <CardTitle className="text-sm font-medium text-foreground">{account.name}</CardTitle>
-                <div className="flex items-center gap-1.5 leading-none">
-                    <p className="text-[10px] font-medium text-muted-foreground/80">{account.institution_name}</p>
-                    <span className="text-[10px] text-muted-foreground/40">•</span>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{account.subtype}</p>
+const AccountCard = ({ account, onClick }: { account: any, onClick: () => void }) => (
+    <div onClick={onClick} className="block h-full cursor-pointer">
+        <Card className="hover:border-accent transition-colors h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                    <CardTitle className="text-sm font-medium text-foreground">{account.name}</CardTitle>
+                    <div className="flex items-center gap-1.5 leading-none">
+                        <p className="text-[10px] font-medium text-muted-foreground/80">{account.institution_name}</p>
+                        <span className="text-[10px] text-muted-foreground/40">•</span>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{account.subtype}</p>
+                    </div>
                 </div>
-            </div>
-            {account.institution_logo ? (
-                <div className="w-8 h-8 flex items-center justify-center">
-                    <img
-                        src={`data:image/png;base64,${account.institution_logo}`}
-                        alt={account.institution_name}
-                        className="max-w-full max-h-full object-contain"
-                    />
-                </div>
-            ) : (
-                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                </div>
-            )}
-        </CardHeader>
-        <CardContent>
-            <div className="text-2xl font-bold text-foreground">
-                {formatCurrency(account.balances.current)}
-            </div>
-            <div className="flex justify-between items-center mt-2">
-                <p className="text-xs text-muted-foreground">
-                    Ending in {account.mask}
-                </p>
-                {account.balances.available !== null && (
-                    <p className="text-[10px] text-muted-foreground/60">
-                        Avail: {formatCurrency(account.balances.available)}
-                    </p>
+                {account.institution_logo ? (
+                    <div className="w-8 h-8 flex items-center justify-center">
+                        <img
+                            src={`data:image/png;base64,${account.institution_logo}`}
+                            alt={account.institution_name}
+                            className="max-w-full max-h-full object-contain"
+                        />
+                    </div>
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                    </div>
                 )}
-            </div>
-        </CardContent>
-    </Card>
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                    {formatCurrency(account.balances.current)}
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                    <p className="text-xs text-muted-foreground">
+                        Ending in {account.mask}
+                    </p>
+                    {account.balances.available !== null && (
+                        <p className="text-[10px] text-muted-foreground/60">
+                            Avail: {formatCurrency(account.balances.available)}
+                        </p>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    </div>
 );
 
 export default function Dashboard() {
@@ -69,6 +72,7 @@ export default function Dashboard() {
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<'institution' | 'type'>('institution');
     const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+    const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
     // Load tokens from localStorage on mount
     useEffect(() => {
@@ -513,7 +517,11 @@ export default function Dashboard() {
                                                                 {!isSubCollapsed && (
                                                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                                                         {accounts.map((account: any, idx: number) => (
-                                                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                                            <AccountCard 
+                                                                                key={`${account.account_id}-${idx}`} 
+                                                                                account={account} 
+                                                                                onClick={() => setSelectedAccountId(account.account_id)}
+                                                                            />
                                                                         ))}
                                                                     </div>
                                                                 )}
@@ -523,7 +531,11 @@ export default function Dashboard() {
                                                 ) : (
                                                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                                         {groupData.map((account: any, idx: number) => (
-                                                            <AccountCard key={`${account.account_id}-${idx}`} account={account} />
+                                                            <AccountCard 
+                                                                key={`${account.account_id}-${idx}`} 
+                                                                account={account} 
+                                                                onClick={() => setSelectedAccountId(account.account_id)}
+                                                            />
                                                         ))}
                                                     </div>
                                                 )}
@@ -543,6 +555,13 @@ export default function Dashboard() {
                     <p className="text-neutral-500 animate-pulse">Fetching account data...</p>
                 </div>
             )}
+
+            <AccountDetailsModal
+                isOpen={!!selectedAccountId}
+                onClose={() => setSelectedAccountId(null)}
+                accountId={selectedAccountId}
+                accessTokens={accessTokens}
+            />
         </div>
     );
 }
