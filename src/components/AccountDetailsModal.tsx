@@ -238,6 +238,7 @@ export default function AccountDetailsModal({
   }
 
   const calculateBalanceHistory = (currentBalance: number, transactions: Transaction[]) => {
+    // We expect transactions from 'now' back to at least startDate.
     const sortedTransactions = [...transactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
@@ -250,27 +251,46 @@ export default function AccountDetailsModal({
     let tempBalance = currentBalance;
     const historyPoints: BalanceHistoryPoint[] = [];
     
+    // Determine the visualization range
     const { start, end } = getDateRange(selectedRange);
+    
+    // We iterate backwards from TODAY (because we know currentBalance at TODAY).
+    // As we move backwards, we "undo" transactions to find previous balances.
+    const loopDate = new Date(); // Start at "now"
+    loopDate.setHours(0,0,0,0);
+    
     const startDate = new Date(start);
     startDate.setHours(0,0,0,0);
 
-    const loopDate = new Date(end);
-    loopDate.setHours(0,0,0,0);
+    const endDate = new Date(end);
+    endDate.setHours(0,0,0,0);
 
-    // Limit iteration to prevent potential infinite loops or performance issues if dates are wild
+    // Limit iteration
     let safetyCounter = 0;
-    const MAX_DAYS = 365 * 15; // 15 years max
+    const MAX_DAYS = 365 * 10; 
 
+    // Loop until we go past the start date
     while (loopDate >= startDate && safetyCounter < MAX_DAYS) {
         const dateStr = loopDate.toISOString().split('T')[0];
 
-        historyPoints.unshift({
-            date: dateStr,
-            balance: tempBalance
-        });
+        // Only add to history if we are within the requested [start, end] window
+        // (inclusive of start/end dates).
+        if (loopDate <= endDate) {
+            historyPoints.unshift({
+                date: dateStr,
+                balance: tempBalance
+            });
+        }
 
+        // Before moving to previous day, undo transactions of the current loopDate
+        // Undo means: if transaction was +amount, we subtract it to get *start of day* balance of loopDate? 
+        // No. balance is usually "end of day".
+        // If current balance is end of TODAY.
+        // Transactions today happened.
+        // To get balance at end of YESTERDAY, we SUBTRACT today's transactions.
+        
         const change = txMap[dateStr] || 0;
-        tempBalance += change;
+        tempBalance += change; // Add change to go backwards (assuming Plaid convention: positive amount = expense)
 
         loopDate.setDate(loopDate.getDate() - 1);
         safetyCounter++;
@@ -456,7 +476,21 @@ export default function AccountDetailsModal({
                                 <table className="w-full text-sm text-left">
                                     <tbody className="divide-y text-foreground">
                                         {Object.entries(
-                                            data.transactions.reduce((acc: Record<string, Transaction[]>, tx) => {
+                                            data.transactions
+                                            .filter(tx => {
+                                                // Filter transactions to match the selected range view
+                                                // (Though we fetch more for calculation, we only show requested range)
+                                                // We can get the range boundaries from our helper
+                                                const { start, end } = getDateRange(selectedRange);
+                                                const toDateStr = (d: Date) => {
+                                                    const year = d.getFullYear();
+                                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(d.getDate()).padStart(2, '0');
+                                                    return `${year}-${month}-${day}`;
+                                                };
+                                                return tx.date >= toDateStr(start) && tx.date <= toDateStr(end);
+                                            })
+                                            .reduce((acc: Record<string, Transaction[]>, tx) => {
                                                 const date = tx.date;
                                                 if (!acc[date]) acc[date] = [];
                                                 acc[date].push(tx);
@@ -485,8 +519,8 @@ export default function AccountDetailsModal({
                                                                 {tx.category ? tx.category[0] : 'Uncategorized'}
                                                             </div>
                                                         </td>
-                                                        <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? '' : 'text-green-600'}`}>
-                                                            {formatCurrency(tx.amount, data.account.balances.iso_currency_code)}
+                                                        <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                            {formatCurrency(tx.amount * -1, data.account.balances.iso_currency_code)}
                                                         </td>
                                                     </tr>
                                                 ))}

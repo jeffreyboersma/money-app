@@ -38,11 +38,15 @@ export async function POST(request: Request) {
     }
 
     // Fetch transactions based on date range or default to 30 days
-    const endDate = queryEndDate ? new Date(queryEndDate) : new Date();
+    // We always fetch up to the current date (new Date()) to ensure we have recent transactions
+    // needed to accurately calculate historical balances backwards from the current balance.
+    const requestedEndDate = queryEndDate ? new Date(queryEndDate) : new Date();
+    const fetchEndDate = new Date();
+    
     const startDate = queryStartDate ? new Date(queryStartDate) : new Date();
     
     if (!queryStartDate) {
-      startDate.setDate(endDate.getDate() - 30);
+      startDate.setDate(requestedEndDate.getDate() - 30);
     }
 
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
@@ -51,9 +55,10 @@ export async function POST(request: Request) {
     const transactionsResponse = await plaidClient.transactionsGet({
       access_token: foundToken,
       start_date: formatDate(startDate),
-      end_date: formatDate(endDate),
+      end_date: formatDate(fetchEndDate),
       options: {
         account_ids: [account_id],
+        count: 500, // Increase limit to capture more history
       },
     });
 
