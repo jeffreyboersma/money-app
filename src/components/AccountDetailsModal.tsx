@@ -20,7 +20,7 @@ interface Transaction {
   category: string[];
 }
 
-type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL';
+type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL' | 'CUSTOM';
 
 interface AccountData {
   account: {
@@ -131,10 +131,33 @@ export default function AccountDetailsModal({
   const [data, setData] = useState<AccountData | null>(null);
   const [balanceHistory, setBalanceHistory] = useState<BalanceHistoryPoint[]>([]);
   const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
+  const [customStart, setCustomStart] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEnd, setCustomEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   const getDateRange = (range: TimeRange) => {
     const end = new Date();
     const start = new Date();
+
+    if (range === 'CUSTOM') {
+      const s = new Date(customStart);
+      s.setHours(0, 0, 0, 0); // Start of day local time
+      // Adjust simply to avoid timezone issues with pure date strings if needed
+      // But new Date('YYYY-MM-DD') is UTC. new Date('YYYY-MM-DDT00:00:00') is local.
+      // Let's ensure we use local logical date construction
+      const [sY, sM, sD] = customStart.split('-').map(Number);
+      start.setFullYear(sY, sM - 1, sD);
+      start.setHours(0, 0, 0, 0);
+
+      const [eY, eM, eD] = customEnd.split('-').map(Number);
+      end.setFullYear(eY, eM - 1, eD);
+      end.setHours(23, 59, 59, 999);
+      
+      return { start, end };
+    }
 
     switch (range) {
       case '1D':
@@ -177,7 +200,7 @@ export default function AccountDetailsModal({
       setData((prev) => (prev?.account.account_id === accountId ? prev : null));
       fetchData();
     }
-  }, [isOpen, accountId, selectedRange]);
+  }, [isOpen, accountId, selectedRange, customStart, customEnd]);
 
   async function fetchData() {
     if (!accountId) return;
@@ -227,11 +250,11 @@ export default function AccountDetailsModal({
     let tempBalance = currentBalance;
     const historyPoints: BalanceHistoryPoint[] = [];
     
-    const { start } = getDateRange(selectedRange);
+    const { start, end } = getDateRange(selectedRange);
     const startDate = new Date(start);
     startDate.setHours(0,0,0,0);
 
-    const loopDate = new Date();
+    const loopDate = new Date(end);
     loopDate.setHours(0,0,0,0);
 
     // Limit iteration to prevent potential infinite loops or performance issues if dates are wild
@@ -324,8 +347,8 @@ export default function AccountDetailsModal({
 
           {!error && (
             <>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center mt-1">
                         {data ? (
                             formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)
                         ) : (
@@ -333,19 +356,39 @@ export default function AccountDetailsModal({
                         )}
                     </div>
 
-                    <div className="flex flex-wrap items-center bg-muted/40 p-1 rounded-lg border gap-0.5">
-                      {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL'] as const).map((r) => (
-                        <Button
-                          key={r}
-                          variant="ghost"
-                          size="sm"
-                          className={`h-7 px-2 text-xs hover:bg-background/50 ${selectedRange === r ? 'bg-background shadow-sm hover:bg-background text-foreground' : 'text-muted-foreground'}`}
-                          onClick={() => setSelectedRange(r)}
-                          disabled={loading && !data} // Disable only on initial load
-                        >
-                          {r}
-                        </Button>
-                      ))}
+                    <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-wrap items-center bg-muted/40 p-1 rounded-lg border gap-0.5">
+                          {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL', 'CUSTOM'] as const).map((r) => (
+                            <Button
+                              key={r}
+                              variant="ghost"
+                              size="sm"
+                              className={`h-7 px-2 text-xs hover:bg-background/50 ${selectedRange === r ? 'bg-background shadow-sm hover:bg-background text-foreground' : 'text-muted-foreground'}`}
+                              onClick={() => setSelectedRange(r)}
+                              disabled={loading && !data}
+                            >
+                              {r === 'CUSTOM' ? 'Custom' : r}
+                            </Button>
+                          ))}
+                        </div>
+
+                        {selectedRange === 'CUSTOM' && (
+                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <input 
+                                    type="date" 
+                                    value={customStart}
+                                    onChange={(e) => setCustomStart(e.target.value)}
+                                    className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                <span className="text-muted-foreground text-xs">to</span>
+                                <input 
+                                    type="date" 
+                                    value={customEnd}
+                                    onChange={(e) => setCustomEnd(e.target.value)}
+                                    className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
