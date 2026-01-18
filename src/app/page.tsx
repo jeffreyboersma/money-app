@@ -12,7 +12,7 @@ export default function Home() {
             width={200}
             height={60}
             priority
-            className="object-contain"
+            className="object-contain brightness-0 dark:brightness-100"
           />
         </header>
 
