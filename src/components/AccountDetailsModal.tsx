@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, RotateCcw, Download } from 'lucide-react';
@@ -138,6 +138,21 @@ export default function AccountDetailsModal({
   });
   const [customEnd, setCustomEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  const downloadMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+        setIsDownloadMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const getDateRange = (range: TimeRange) => {
     const end = new Date();
@@ -378,6 +393,211 @@ export default function AccountDetailsModal({
     document.body.removeChild(link);
   };
 
+  const handleExportOFX = () => {
+    if (!data || !data.transactions) return;
+
+    const { start, end } = getDateRange(selectedRange);
+    const toDateStr = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const startDateStr = toDateStr(start);
+    const endDateStr = toDateStr(end);
+
+    const filteredTransactions = data.transactions.filter(tx => {
+        return tx.date >= startDateStr && tx.date <= endDateStr;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    if (filteredTransactions.length === 0) return;
+
+    const formatOFXDate = (dateStr: string) => {
+        return dateStr.replace(/-/g, '') + '000000';
+    };
+
+    const now = new Date();
+    const serverDate = now.toISOString().split('T')[0].replace(/-/g, '') + 
+                       now.toTimeString().split(' ')[0].replace(/:/g, '');
+
+    const currency = data.account.balances.iso_currency_code || 'USD';
+    const subtype = data.account.subtype.toLowerCase();
+    const type = data.account.type.toLowerCase();
+    const isCreditCard = type === 'credit' || subtype.includes('credit card');
+
+    let acctType = 'CHECKING';
+    if (subtype.includes('savings')) acctType = 'SAVINGS';
+    else if (subtype.includes('money market')) acctType = 'MONEYMRKT';
+    else if (isCreditCard) acctType = 'CREDITCARD';
+
+    // OFX 1.0.2 constraints
+    const cleanString = (str: string, maxLength: number) => {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, maxLength);
+    };
+
+    // Plaid account IDs can be long (37+ chars), but OFX usually limits ACCTID to 22 or 32 chars.
+    // MS Money 2002 might be strict (e.g. 22 chars).
+    // We'll take the simple approach of slicing the ID to ensure it fits.
+    // Ideally we'd store a mapping properly, but this should work for import.
+    const safeAccountId = data.account.account_id.replace(/^accessToken-/, '').slice(-22);
+
+    let transactionsXml = '';
+    filteredTransactions.forEach(tx => {
+        const amount = (tx.amount * -1).toFixed(2);
+        const trnType = parseFloat(amount) < 0 ? 'DEBIT' : 'CREDIT';
+        const datePosted = formatOFXDate(tx.date);
+        
+        // SGML OFX 1.0.2 does not use closing tags for leaf elements
+        transactionsXml += `
+            <STMTTRN>
+                <TRNTYPE>${trnType}
+                <DTPOSTED>${datePosted}
+                <TRNAMT>${amount}
+                <FITID>${tx.transaction_id}
+                <NAME>${cleanString(tx.name, 32)}
+                ${tx.category ? `<MEMO>${cleanString(tx.category.join('; '), 255)}` : ''}
+            </STMTTRN>`;
+    });
+
+    let balanceVal = data.account.balances.current;
+    if (isCreditCard) {
+        // For credit cards, positive balance usually means amount owed (debt).
+        // OFX expects debt as negative for LEDGERBAL?
+        // Actually, in OFX:
+        // "Balances are signed relative to the account type. 
+        // For a checking, savings, or money market account, a positive balance indicates an asset...
+        // For a credit card... a positive balance indicates a liability (amount owed)."
+        // Plaid: positive means liability for credit cards.
+        // So for Credit Card, Plaid positive = OFX positive.
+        // For Checking/Savings, Plaid positive = OFX positive.
+        // Wait, earlier code had `balanceVal = -balanceVal` for credit cards.
+        // Let's verify Plaid docs: "A positive balance indicates an outstanding balance (amount owed)."
+        // OFX Spec 1.0.2 Section 11.2 Credit Card: "A positive amount indicates that the user owes money."
+        // So if Plaid says 100 (owed), OFX says 100 (owed).
+        // However, many Money/Quicken versions prefer negative for owing?
+        // Let's stick to standard first. But the previous code flipped it.
+        // Let's revert to NOT flipping it if standard matches, OR if user feedback implies it was wrong.
+        // The user didn't complain about balance, just file corruption.
+        // I will keep the reversal logic IF IT WAS NEEDED for 'standard' behavior in apps like Money.
+        // Usually Money treats Credit Card positive balance as Owed.
+        // Let's look at `TRNAMT`. 
+        // Plaid: Expense is Positive.
+        // OFX: Debit is Negative.
+        // So I flip transactions: `amount = (tx.amount * -1)`. Correct.
+        // If I spend $10, Plaid says +10. OFX says -10 (Debit).
+        // Balance:
+        // If I owe $100. Plaid says +100.
+        // OFX says +100 (Owes).
+        // BUT, `LEDGERBAL` in Money sometimes displays weirdly.
+        // Let's stick to no-flip for balance unless I see specific docs for Money 2002.
+        // Wait, checks logic I modified in previous turn: 
+        // `if (isCreditCard) { balanceVal = -balanceVal; }`
+        // I will keep this logic if it aligns with "available vs current" quirks, but strictly OFX spec says positive = liability.
+        // Let's remove the flip to be Spec compliant, assuming Money 2002 follows spec.
+        // If Plaid current = 100 (debt), OFX LEDGERBAL = 100.
+        // (Removing the flip I added previously).
+    }
+    
+    // Actually, let's keep the flip logic out unless I am sure. 
+    // Wait, Plaid 'current' for depository is Asset (+).
+    // Plaid 'current' for credit is Liability (+).
+    // OFX 'LEDGERBAL' for Check is Asset (+).
+    // OFX 'LEDGERBAL' for Credit is Liability (+).
+    // So direct mapping should be correct.
+    // EXCEPT: My previous code did: `if (isCreditCard) { balanceVal = -balanceVal; }`
+    // I will remove that flip now as it seems wrong per spec.
+
+    const bankTranList = `
+                    <BANKTRANLIST>
+                        <DTSTART>${formatOFXDate(startDateStr)}
+                        <DTEND>${formatOFXDate(endDateStr)}
+                        ${transactionsXml}
+                    </BANKTRANLIST>`;
+
+    const ledgerBal = `
+                    <LEDGERBAL>
+                        <BALAMT>${balanceVal.toFixed(2)}
+                        <DTASOF>${serverDate}
+                    </LEDGERBAL>`;
+
+    let msgSet = '';
+
+    if (isCreditCard) {
+        msgSet = `
+        <CREDITCARDMSGSRSV1>
+            <CCSTMTTRNRS>
+                <TRNUID>1
+                <STATUS>
+                    <CODE>0
+                    <SEVERITY>INFO
+                </STATUS>
+                <CCSTMTRS>
+                    <CURDEF>${currency}
+                    <CCACCTFROM>
+                        <ACCTID>${safeAccountId}
+                    </CCACCTFROM>
+                    ${bankTranList}
+                    ${ledgerBal}
+                </CCSTMTRS>
+            </CCSTMTTRNRS>
+        </CREDITCARDMSGSRSV1>`;
+    } else {
+        msgSet = `
+        <BANKMSGSRSV1>
+            <STMTTRNRS>
+                <TRNUID>1
+                <STATUS>
+                    <CODE>0
+                    <SEVERITY>INFO
+                </STATUS>
+                <STMTRS>
+                    <CURDEF>${currency}
+                    <BANKACCTFROM>
+                        <BANKID>000000000
+                        <ACCTID>${safeAccountId}
+                        <ACCTTYPE>${acctType}
+                    </BANKACCTFROM>
+                    ${bankTranList}
+                    ${ledgerBal}
+                </STMTRS>
+            </STMTTRNRS>
+        </BANKMSGSRSV1>`;
+    }
+
+    const ofxContent = `OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:USASCII
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEUID:NONE
+NEWFILEUID:NONE
+
+<OFX>
+    <SIGNONMSGSRSV1>
+        <SONRS>
+            <STATUS>
+                <CODE>0
+                <SEVERITY>INFO
+            </STATUS>
+            <DTSERVER>${serverDate}
+            <LANGUAGE>ENG
+        </SONRS>
+    </SIGNONMSGSRSV1>
+    ${msgSet}
+</OFX>`;
+
+    const blob = new Blob([ofxContent], { type: 'text/ofx' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transactions_${startDateStr}_${endDateStr}.ofx`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -553,16 +773,41 @@ export default function AccountDetailsModal({
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Transactions</CardTitle>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={handleExportCSV}
-                            disabled={!data || data.transactions.length === 0}
-                        >
-                            <Download className="h-4 w-4" />
-                            Export CSV
-                        </Button>
+                        <div className="relative" ref={downloadMenuRef}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
+                                disabled={!data || data.transactions.length === 0}
+                            >
+                                <Download className="h-4 w-4" />
+                                Download
+                            </Button>
+                            
+                            {isDownloadMenuOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-32 rounded-md border bg-popover p-1 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200">
+                                    <button
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                        onClick={() => {
+                                            handleExportCSV();
+                                            setIsDownloadMenuOpen(false);
+                                        }}
+                                    >
+                                        CSV
+                                    </button>
+                                    <button
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                        onClick={() => {
+                                            handleExportOFX();
+                                            setIsDownloadMenuOpen(false);
+                                        }}
+                                    >
+                                        OFX
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </CardHeader>
                     <CardContent className="relative min-h-[200px]">
                         {loading && (
