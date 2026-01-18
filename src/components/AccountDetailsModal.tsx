@@ -623,7 +623,7 @@ NEWFILEUID:NONE
             </div>
             <div className="flex items-center gap-4">
                 {(institutionName || institutionLogo) && (
-                    <div className="flex items-center gap-2 border-r pr-4 mr-2 border-border/50">
+                    <div className="flex items-center gap-3 border-r pr-4 mr-2 border-border/50">
                         {institutionLogo && (
                              <div className="w-8 h-8 flex items-center justify-center">
                                 <img
