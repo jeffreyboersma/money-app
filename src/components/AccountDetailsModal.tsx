@@ -53,6 +53,71 @@ interface AccountDetailsModalProps {
   institutionLogo?: string;
 }
 
+const CustomTooltip = (props: any) => {
+  const { active, payload, label, coordinate, viewBox, topMargin = 40, bottomMargin = 40 } = props;
+
+  if (active && payload && payload.length && coordinate) {
+    const value = payload[0].value;
+    const date = new Date(label + 'T00:00:00');
+    
+    // Format: "JANUARY 17, 2026"
+    const formattedDate = date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    }).toUpperCase();
+
+    // Format: "-$123.45" or "$123.45"
+    const isNegative = value < 0;
+    const formattedValue = `${isNegative ? '-' : ''}$${Math.abs(value).toFixed(2)}`;
+
+    // Get chart dimensions with fallbacks
+    // viewBox is usually present in Cartesian charts, providing { x, y, width, height }
+    // If undefined, try explicit width/height props, or fallback to sensible defaults based on container
+    const height = viewBox?.height || props.height || 300; 
+    const width = viewBox?.width || props.width || 0;
+    const { x } = coordinate;
+
+    const labelStyle: React.CSSProperties = { left: x };
+    const labelClass = "absolute -translate-x-1/2 flex flex-col items-center";
+
+    return (
+      <div className="relative pointer-events-none" style={{ width: width || '100%', height: height }}>
+        {/* Vertical Line - spanning the chart area only */}
+        <div 
+          className="absolute w-[1px] bg-border border-l border-dashed border-foreground/30"
+          style={{ 
+            left: x, 
+            top: topMargin, 
+            height: height - topMargin - bottomMargin 
+          }}
+        />
+        
+        {/* Top Label (Balance) - placed in the top margin area */}
+        <div 
+          className={labelClass}
+          style={{ ...labelStyle, top: 10 }} // Fixed distance from top of container
+        >
+          <div>
+            <span className="text-lg font-bold tracking-tight">{formattedValue}</span>
+          </div>
+        </div>
+
+        {/* Bottom Label (Date) - placed in the bottom margin area */}
+        <div 
+          className={labelClass}
+          style={{ ...labelStyle, bottom: 20 }} // Fixed distance from bottom of container
+        >
+          <div className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase whitespace-nowrap">
+             {formattedDate}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AccountDetailsModal({ 
   isOpen, 
   onClose, 
@@ -259,26 +324,29 @@ export default function AccountDetailsModal({
 
           {!error && (
             <>
-                <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center">
-                    {data ? (
-                        formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)
-                    ) : (
-                        loading && <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-                    )}
-                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center">
+                        {data ? (
+                            formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)
+                        ) : (
+                            loading && <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+                        )}
+                    </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL'] as const).map((r) => (
-                    <Button
-                      key={r}
-                      variant={selectedRange === r ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedRange(r)}
-                      disabled={loading && !data} // Disable only on initial load
-                    >
-                      {r}
-                    </Button>
-                  ))}
+                    <div className="flex flex-wrap items-center bg-muted/40 p-1 rounded-lg border gap-0.5">
+                      {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL'] as const).map((r) => (
+                        <Button
+                          key={r}
+                          variant="ghost"
+                          size="sm"
+                          className={`h-7 px-2 text-xs hover:bg-background/50 ${selectedRange === r ? 'bg-background shadow-sm hover:bg-background text-foreground' : 'text-muted-foreground'}`}
+                          onClick={() => setSelectedRange(r)}
+                          disabled={loading && !data} // Disable only on initial load
+                        >
+                          {r}
+                        </Button>
+                      ))}
+                    </div>
                 </div>
 
                 <Card>
@@ -294,7 +362,10 @@ export default function AccountDetailsModal({
                         <div className="h-[300px] w-full">
                             {(data || balanceHistory.length > 0) ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={balanceHistory}>
+                                    <AreaChart 
+                                        data={balanceHistory}
+                                        margin={{ top: 40, right: 0, left: 0, bottom: 40 }}
+                                    >
                                         <defs>
                                             <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
@@ -303,13 +374,10 @@ export default function AccountDetailsModal({
                                         </defs>
                                         <XAxis dataKey="date" hide />
                                         <Tooltip 
-                                            contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
-                                            formatter={(value: number | undefined) => value !== undefined ? [`$${value.toFixed(2)}`, 'Balance'] : ['N/A', 'Balance']}
-                                            labelFormatter={(label) => new Date(label + 'T00:00:00').toLocaleDateString('en-US', {
-                                                month: 'short',
-                                                day: 'numeric',
-                                                year: 'numeric'
-                                            })}
+                                            content={<CustomTooltip topMargin={40} bottomMargin={40} />} 
+                                            cursor={false}
+                                            position={{ x: 0, y: 0 }}
+                                            isAnimationActive={false}
                                         />
                                         <Area 
                                             type="monotone" 
