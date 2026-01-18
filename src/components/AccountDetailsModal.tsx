@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, RotateCcw } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -407,6 +407,20 @@ export default function AccountDetailsModal({
                                     onChange={(e) => setCustomEnd(e.target.value)}
                                     className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 />
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => {
+                                        const d = new Date();
+                                        d.setDate(d.getDate() - 30);
+                                        setCustomStart(d.toISOString().split('T')[0]);
+                                        setCustomEnd(new Date().toISOString().split('T')[0]);
+                                    }}
+                                    title="Reset to past 30 days"
+                                >
+                                    <RotateCcw className="h-4 w-4" />
+                                </Button>
                             </div>
                         )}
                     </div>
