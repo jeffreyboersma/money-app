@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -21,6 +21,8 @@ interface Transaction {
   amount: number;
   category: string[];
 }
+
+type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL';
 
 interface AccountData {
   account: {
@@ -65,16 +67,54 @@ export default function AccountDetailsModal({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AccountData | null>(null);
   const [balanceHistory, setBalanceHistory] = useState<BalanceHistoryPoint[]>([]);
+  const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
+
+  const getDateRange = (range: TimeRange) => {
+    const end = new Date();
+    const start = new Date();
+
+    switch (range) {
+      case '1D':
+        start.setDate(end.getDate() - 1);
+        break;
+      case '1W':
+        start.setDate(end.getDate() - 7);
+        break;
+      case '30D':
+        start.setDate(end.getDate() - 30);
+        break;
+      case '3M':
+        start.setMonth(end.getMonth() - 3);
+        break;
+      case '6M':
+        start.setMonth(end.getMonth() - 6);
+        break;
+      case '1Y':
+        start.setFullYear(end.getFullYear() - 1);
+        break;
+      case '5Y':
+        start.setFullYear(end.getFullYear() - 5);
+        break;
+      case 'YTD':
+        start.setMonth(0, 1);
+        break;
+      case 'ALL':
+        start.setFullYear(end.getFullYear() - 10);
+        break;
+    }
+    return { start, end };
+  };
 
   // Reset state when modal opens/closes or account changes
   useEffect(() => {
     if (isOpen && accountId) {
       setLoading(true);
       setError(null);
-      setData(null);
+      // Only clear data if the account ID has changed to allow for smooth transitions when changing date ranges
+      setData((prev) => (prev?.account.account_id === accountId ? prev : null));
       fetchData();
     }
-  }, [isOpen, accountId]);
+  }, [isOpen, accountId, selectedRange]);
 
   async function fetchData() {
     if (!accountId) return;
@@ -84,12 +124,16 @@ export default function AccountDetailsModal({
         throw new Error('No access tokens available.');
       }
 
+      const { start, end } = getDateRange(selectedRange);
+
       const response = await fetch('/api/get_account_details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           access_tokens: accessTokens,
           account_id: accountId,
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
         }),
       });
 
@@ -119,12 +163,20 @@ export default function AccountDetailsModal({
 
     let tempBalance = currentBalance;
     const historyPoints: BalanceHistoryPoint[] = [];
-    const today = new Date();
+    
+    const { start } = getDateRange(selectedRange);
+    const startDate = new Date(start);
+    startDate.setHours(0,0,0,0);
 
-    for (let i = 0; i < 30; i++) {
-        const d = new Date();
-        d.setDate(today.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+    const loopDate = new Date();
+    loopDate.setHours(0,0,0,0);
+
+    // Limit iteration to prevent potential infinite loops or performance issues if dates are wild
+    let safetyCounter = 0;
+    const MAX_DAYS = 365 * 15; // 15 years max
+
+    while (loopDate >= startDate && safetyCounter < MAX_DAYS) {
+        const dateStr = loopDate.toISOString().split('T')[0];
 
         historyPoints.unshift({
             date: dateStr,
@@ -133,6 +185,9 @@ export default function AccountDetailsModal({
 
         const change = txMap[dateStr] || 0;
         tempBalance += change;
+
+        loopDate.setDate(loopDate.getDate() - 1);
+        safetyCounter++;
     }
 
     setBalanceHistory(historyPoints);
@@ -188,12 +243,6 @@ export default function AccountDetailsModal({
         </div>
 
         <div className="p-6 space-y-6">
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-               Loading details...
-            </div>
-          )}
-
           {error && (
             <div className="flex flex-col items-center justify-center py-12 text-red-500 gap-4">
               <p>{error}</p>
@@ -201,47 +250,76 @@ export default function AccountDetailsModal({
             </div>
           )}
 
-          {!loading && !error && data && (
+          {!error && (
             <>
-                <div className="text-3xl font-bold text-primary">
-                    {formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)}
+                <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center">
+                    {data ? (
+                        formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)
+                    ) : (
+                        loading && <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+                    )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL'] as const).map((r) => (
+                    <Button
+                      key={r}
+                      variant={selectedRange === r ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedRange(r)}
+                      disabled={loading && !data} // Disable only on initial load
+                    >
+                      {r}
+                    </Button>
+                  ))}
                 </div>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Balance History (Last 30 Days)</CardTitle>
+                        <CardTitle>Balance History ({selectedRange})</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all duration-200">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        )}
                         <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={balanceHistory}>
-                                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                    <XAxis 
-                                        dataKey="date" 
-                                        tickFormatter={(str) => {
-                                            const date = new Date(str);
-                                            return `${date.getMonth() + 1}/${date.getDate()}`;
-                                        }}
-                                        minTickGap={30}
-                                    />
-                                    <YAxis 
-                                        domain={['auto', 'auto']}
-                                        tickFormatter={(val) => `$${val}`}
-                                    />
-                                    <Tooltip 
-                                        contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
-                                        formatter={(value: number | undefined) => value !== undefined ? [`$${value.toFixed(2)}`, 'Balance'] : ['N/A', 'Balance']}
-                                        labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                                    />
-                                    <Line 
-                                        type="monotone" 
-                                        dataKey="balance" 
-                                        stroke="#2563eb" 
-                                        strokeWidth={2}
-                                        dot={false}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
+                            {(data || balanceHistory.length > 0) ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={balanceHistory}>
+                                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            tickFormatter={(str) => {
+                                                const date = new Date(str);
+                                                return `${date.getMonth() + 1}/${date.getDate()}`;
+                                            }}
+                                            minTickGap={30}
+                                        />
+                                        <YAxis 
+                                            domain={['auto', 'auto']}
+                                            tickFormatter={(val) => `$${val}`}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
+                                            formatter={(value: number | undefined) => value !== undefined ? [`$${value.toFixed(2)}`, 'Balance'] : ['N/A', 'Balance']}
+                                            labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                        />
+                                        <Line 
+                                            type="monotone" 
+                                            dataKey="balance" 
+                                            stroke="#2563eb" 
+                                            strokeWidth={2}
+                                            dot={false}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                    No data available
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -249,42 +327,68 @@ export default function AccountDetailsModal({
                 <Card>
                     <CardHeader>
                         <CardTitle>Recent Transactions</CardTitle>
-                        <CardDescription>Transactions from the last 30 days</CardDescription>
+                        <CardDescription>Transactions from {selectedRange}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-muted-foreground border-b">
-                                    <tr>
-                                        <th className="py-3 font-medium">Date</th>
-                                        <th className="py-3 font-medium">Description</th>
-                                        <th className="py-3 font-medium">Category</th>
-                                        <th className="py-3 font-medium text-right">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {data.transactions.map((tx) => (
-                                        <tr key={tx.transaction_id} className="hover:bg-muted/50">
-                                            <td className="py-3">{tx.date}</td>
-                                            <td className="py-3 font-medium">{tx.name}</td>
-                                            <td className="py-3 text-muted-foreground">
-                                                {tx.category ? tx.category[0] : 'Uncategorized'}
-                                            </td>
-                                            <td className={`py-3 text-right font-medium ${tx.amount > 0 ? '' : 'text-green-600'}`}>
-                                                {formatCurrency(tx.amount, data.account.balances.iso_currency_code)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {data.transactions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="py-8 text-center text-muted-foreground">
-                                                No transactions found in the last 30 days.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <CardContent className="relative min-h-[200px]">
+                        {loading && (
+                            <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all duration-200 rounded-lg">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        )}
+                        {data ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <tbody className="divide-y text-foreground">
+                                        {Object.entries(
+                                            data.transactions.reduce((acc: Record<string, Transaction[]>, tx) => {
+                                                const date = tx.date;
+                                                if (!acc[date]) acc[date] = [];
+                                                acc[date].push(tx);
+                                                return acc;
+                                            }, {})
+                                        )
+                                        .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
+                                        .map(([date, transactions]) => (
+                                            <React.Fragment key={date}>
+                                                <tr>
+                                                    <td colSpan={2} className="py-4 pl-4 font-semibold text-xs text-muted-foreground uppercase tracking-wider bg-background-secondary">
+                                                        {new Date(date).toLocaleDateString('en-US', { 
+                                                            month: 'long', 
+                                                            day: 'numeric',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </td>
+                                                </tr>
+                                                {transactions.map((tx) => (
+                                                    <tr key={tx.transaction_id} className="hover:bg-muted/50 group border-b last:border-0 border-border/40">
+                                                        <td className="py-3 pl-8">
+                                                            <div className="font-medium group-hover:text-primary transition-colors">
+                                                                {tx.name}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                                {tx.category ? tx.category[0] : 'Uncategorized'}
+                                                            </div>
+                                                        </td>
+                                                        <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? '' : 'text-green-600'}`}>
+                                                            {formatCurrency(tx.amount, data.account.balances.iso_currency_code)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                        {data.transactions.length === 0 && (
+                                            <tr>
+                                                <td colSpan={2} className="py-8 text-center text-muted-foreground">
+                                                    No transactions found for this period.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="h-[200px]" /> /* Placeholder for loading state */
+                        )}
                     </CardContent>
                 </Card>
             </>

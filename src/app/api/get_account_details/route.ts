@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { access_tokens, account_id } = await request.json();
+    const { access_tokens, account_id, startDate: queryStartDate, endDate: queryEndDate } = await request.json();
 
     if (!access_tokens || !Array.isArray(access_tokens) || !account_id) {
       return NextResponse.json({ error: 'Missing access_tokens or account_id' }, { status: 400 });
@@ -37,10 +37,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Account not found in provided access tokens' }, { status: 404 });
     }
 
-    // Fetch transactions for the last 30 days
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
+    // Fetch transactions based on date range or default to 30 days
+    const endDate = queryEndDate ? new Date(queryEndDate) : new Date();
+    const startDate = queryStartDate ? new Date(queryStartDate) : new Date();
+    
+    if (!queryStartDate) {
+      startDate.setDate(endDate.getDate() - 30);
+    }
 
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
