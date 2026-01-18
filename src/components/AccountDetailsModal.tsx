@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Loader2, RotateCcw } from 'lucide-react';
+import { X, Loader2, RotateCcw, Download } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -333,6 +333,51 @@ export default function AccountDetailsModal({
     return '#9ca3af';
   }, [balanceHistory]);
 
+  const handleExportCSV = () => {
+    if (!data || !data.transactions) return;
+
+    const { start, end } = getDateRange(selectedRange);
+    const toDateStr = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const startDateStr = toDateStr(start);
+    const endDateStr = toDateStr(end);
+
+    const filteredTransactions = data.transactions.filter(tx => {
+        return tx.date >= startDateStr && tx.date <= endDateStr;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    if (filteredTransactions.length === 0) return;
+
+    const headers = ['Date', 'Name', 'Category', 'Amount', 'Currency'];
+    const csvContent = [
+        headers.join(','),
+        ...filteredTransactions.map(tx => {
+            const category = tx.category ? `"${tx.category.join(';')}"` : '';
+            const name = `"${tx.name.replace(/"/g, '""')}"`;
+            return [
+                tx.date,
+                name,
+                category,
+                tx.amount * -1,
+                data.account.balances.iso_currency_code
+            ].join(',');
+        })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `transactions_${startDateStr}_${endDateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -506,8 +551,18 @@ export default function AccountDetailsModal({
                 </Card>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle>Transactions</CardTitle>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={handleExportCSV}
+                            disabled={!data || data.transactions.length === 0}
+                        >
+                            <Download className="h-4 w-4" />
+                            Export CSV
+                        </Button>
                     </CardHeader>
                     <CardContent className="relative min-h-[200px]">
                         {loading && (
