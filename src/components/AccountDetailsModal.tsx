@@ -137,6 +137,7 @@ export default function AccountDetailsModal({
     return d.toISOString().split('T')[0];
   });
   const [customEnd, setCustomEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   const getDateRange = (range: TimeRange) => {
     const end = new Date();
@@ -194,6 +195,23 @@ export default function AccountDetailsModal({
   // Reset state when modal opens/closes or account changes
   useEffect(() => {
     if (isOpen && accountId) {
+      if (selectedRange === 'CUSTOM') {
+        if (customStart > customEnd) {
+          setDateError('Start date cannot be after end date');
+          return;
+        }
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        if (customStart > today || customEnd > today) {
+          setDateError('Dates cannot be in the future');
+          return;
+        }
+        setDateError(null);
+      } else {
+        setDateError(null);
+      }
+
       setLoading(true);
       setError(null);
       // Only clear data if the account ID has changed to allow for smooth transitions when changing date ranges
@@ -393,34 +411,41 @@ export default function AccountDetailsModal({
                         </div>
 
                         {selectedRange === 'CUSTOM' && (
-                            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <input 
-                                    type="date" 
-                                    value={customStart}
-                                    onChange={(e) => setCustomStart(e.target.value)}
-                                    className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <span className="text-muted-foreground text-xs">to</span>
-                                <input 
-                                    type="date" 
-                                    value={customEnd}
-                                    onChange={(e) => setCustomEnd(e.target.value)}
-                                    className="h-8 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => {
-                                        const d = new Date();
-                                        d.setDate(d.getDate() - 30);
-                                        setCustomStart(d.toISOString().split('T')[0]);
-                                        setCustomEnd(new Date().toISOString().split('T')[0]);
-                                    }}
-                                    title="Reset to past 30 days"
-                                >
-                                    <RotateCcw className="h-4 w-4" />
-                                </Button>
+                            <div className="flex flex-col items-end gap-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="flex items-center gap-2">
+                                    <input 
+                                        type="date" 
+                                        value={customStart}
+                                        onChange={(e) => setCustomStart(e.target.value)}
+                                        className={`h-8 rounded-md border bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                                    />
+                                    <span className="text-muted-foreground text-xs">to</span>
+                                    <input 
+                                        type="date" 
+                                        value={customEnd}
+                                        onChange={(e) => setCustomEnd(e.target.value)}
+                                        className={`h-8 rounded-md border bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => {
+                                            const d = new Date();
+                                            d.setDate(d.getDate() - 30);
+                                            setCustomStart(d.toISOString().split('T')[0]);
+                                            setCustomEnd(new Date().toISOString().split('T')[0]);
+                                        }}
+                                        title="Reset to past 30 days"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                {dateError && (
+                                    <span className="text-xs text-red-500 font-medium">
+                                        {dateError}
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -533,7 +558,7 @@ export default function AccountDetailsModal({
                                                                 {tx.category ? tx.category[0] : 'Uncategorized'}
                                                             </div>
                                                         </td>
-                                                        <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                        <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? 'text-red-400' : 'text-green-600'}`}>
                                                             {formatCurrency(tx.amount * -1, data.account.balances.iso_currency_code)}
                                                         </td>
                                                     </tr>
