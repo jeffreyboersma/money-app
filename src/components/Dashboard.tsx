@@ -20,7 +20,7 @@ const formatCurrency = (amount: number) => {
 
 const AccountCard = ({ account, onClick }: { account: any, onClick: () => void }) => (
     <div onClick={onClick} className="block h-full cursor-pointer">
-        <Card className="hover:border-accent transition-colors h-full">
+        <Card className="hover:border-accent hover:bg-secondary-foreground/15 transition-colors h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                     <CardTitle className="text-sm font-medium text-foreground">{account.name}</CardTitle>
