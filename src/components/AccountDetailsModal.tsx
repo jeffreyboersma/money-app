@@ -453,7 +453,12 @@ export default function AccountDetailsModal({
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Balance History ({selectedRange})</CardTitle>
+                        <CardTitle className="flex items-center gap-3">
+                            Balance History
+                            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                {selectedRange === 'CUSTOM' ? 'Custom' : selectedRange}
+                            </span>
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="relative">
                         {loading && (
