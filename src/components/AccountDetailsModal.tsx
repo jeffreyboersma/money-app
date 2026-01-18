@@ -7,6 +7,7 @@ import { X, Loader2 } from 'lucide-react';
 import {
   AreaChart,
   Area,
+  XAxis,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
@@ -300,10 +301,15 @@ export default function AccountDetailsModal({
                                                 <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
                                             </linearGradient>
                                         </defs>
+                                        <XAxis dataKey="date" hide />
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: 'var(--background)', borderColor: 'var(--border)' }}
                                             formatter={(value: number | undefined) => value !== undefined ? [`$${value.toFixed(2)}`, 'Balance'] : ['N/A', 'Balance']}
-                                            labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                            labelFormatter={(label) => new Date(label + 'T00:00:00').toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}
                                         />
                                         <Area 
                                             type="monotone" 
