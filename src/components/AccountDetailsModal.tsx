@@ -211,7 +211,7 @@ export default function AccountDetailsModal({
                  {data ? (
                     <>
                         <h2 className="text-xl font-bold">{data.account.name}</h2>
-                        <p className="text-sm text-muted-foreground">{data.account.official_name || data.account.subtype}</p>
+                        <p className="text-sm text-muted-foreground">{data.account.type.toUpperCase()} • {data.account.subtype.toUpperCase()}</p>
                     </>
                  ) : (
                     <h2 className="text-xl font-bold">Account Details</h2>
@@ -326,8 +326,7 @@ export default function AccountDetailsModal({
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Recent Transactions</CardTitle>
-                        <CardDescription>Transactions from {selectedRange}</CardDescription>
+                        <CardTitle>Transactions</CardTitle>
                     </CardHeader>
                     <CardContent className="relative min-h-[200px]">
                         {loading && (
