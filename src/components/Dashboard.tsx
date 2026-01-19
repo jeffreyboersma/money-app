@@ -275,7 +275,7 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-thin tracking-wider text-foreground">Dashboard</h2>
                     <p className="font-thin tracking-wider text-muted-foreground">Get a clear picture of your finances.</p>

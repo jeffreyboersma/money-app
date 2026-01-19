@@ -18,6 +18,8 @@ interface Transaction {
   name: string;
   amount: number;
   category: string[];
+  logo_url?: string | null;
+  personal_finance_category_icon_url?: string | null;
 }
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL' | 'CUSTOM';
@@ -863,11 +865,30 @@ NEWFILEUID:NONE
                                                 {transactions.map((tx) => (
                                                     <tr key={tx.transaction_id} className="hover:bg-muted/50 group border-b last:border-0 border-border/40">
                                                         <td className="py-3 pl-8">
-                                                            <div className="font-medium group-hover:text-primary transition-colors">
-                                                                {tx.name}
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                                {tx.category ? tx.category[0] : 'Uncategorized'}
+                                                            <div className="flex items-center gap-3">
+                                                                {(tx.logo_url || tx.personal_finance_category_icon_url) && (
+                                                                    <div className={`h-8 w-8 flex-shrink-0 flex items-center justify-center ${
+                                                                        tx.logo_url 
+                                                                            ? "overflow-hidden rounded-full border bg-background" 
+                                                                            : ""
+                                                                    }`}>
+                                                                        <img 
+                                                                            src={tx.logo_url || tx.personal_finance_category_icon_url || ''} 
+                                                                            alt=""
+                                                                            className={`h-full w-full object-contain ${
+                                                                                !tx.logo_url ? "dark:invert dark:brightness-85" : ""
+                                                                            }`}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <div>
+                                                                    <div className="font-medium group-hover:text-primary transition-colors">
+                                                                        {tx.name}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground mt-0.5">
+                                                                        {tx.category ? tx.category[0] : 'Uncategorized'}
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className={`py-3 pr-4 text-right font-medium ${tx.amount > 0 ? 'text-red-400' : 'text-green-600'}`}>
