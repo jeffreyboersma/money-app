@@ -20,6 +20,11 @@ interface Transaction {
   category: string[];
   logo_url?: string | null;
   personal_finance_category_icon_url?: string | null;
+  personal_finance_category?: {
+    primary: string;
+    detailed: string;
+    confidence_level: string;
+  } | null;
 }
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL' | 'CUSTOM';
@@ -55,6 +60,13 @@ interface AccountDetailsModalProps {
   institutionName?: string;
   institutionLogo?: string;
 }
+
+const formatCategory = (category: string) => {
+  return category
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 const CustomTooltip = (props: any) => {
   const { active, payload, label, coordinate, viewBox, topMargin = 40, bottomMargin = 40 } = props;
@@ -914,7 +926,9 @@ NEWFILEUID:NONE
                                                                         {tx.name}
                                                                     </div>
                                                                     <div className="text-xs text-muted-foreground mt-0.5">
-                                                                        {tx.category ? tx.category[0] : 'Uncategorized'}
+                                                                        {tx.personal_finance_category?.primary 
+                                                                            ? formatCategory(tx.personal_finance_category.primary) 
+                                                                            : (tx.category ? tx.category[0] : 'Uncategorized')}
                                                                     </div>
                                                                 </div>
                                                             </div>
