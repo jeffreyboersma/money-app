@@ -61,8 +61,28 @@ interface AccountDetailsModalProps {
   institutionLogo?: string;
 }
 
-const formatCategory = (category: string) => {
-  return category
+const getDisplayCategory = (tx: Transaction): string | null => {
+  if (!tx.personal_finance_category) return null;
+  
+  const { primary, detailed } = tx.personal_finance_category;
+  
+  // Custom mappings requested by user
+  if (detailed.includes('GROCERIES')) return 'Groceries';
+  if (detailed.includes('RESTAURANT')) return 'Restaurant';
+  if (detailed.includes('FAST_FOOD')) return 'Fast Food';
+  if (detailed.includes('COFFEE')) return 'Coffee';
+  if (detailed.includes('BEER_WINE_AND_LIQUOR')) return 'Alcohol';
+  if (detailed.includes('TRANSPORTATION_GAS')) return 'Gas';
+  if (detailed.includes('TRANSPORTATION_PARKING')) return 'Parking';
+  if (detailed.includes('TRANSPORTATION_PUBLIC_TRANSIT')) return 'Public Transit';
+  if (detailed.includes('TRANSPORTATION_TOLLS')) return 'Tolls';
+  if (detailed.includes('INTERNET_AND_CABLE')) return 'Internet & Cable';
+  if (detailed.includes('GAS_AND_ELECTRICITY')) return 'Gas & Electricity';
+  if (detailed.includes('RENT_AND_UTILITIES_WATER')) return 'Water';
+  if (detailed.includes('RENT_AND_UTILITIES_TELEPHONE')) return 'Phone';
+  if (detailed.includes('HOME_IMPROVEMENT_HARDWARE')) return 'Hardware';
+  
+  return primary
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
@@ -412,9 +432,8 @@ export default function AccountDetailsModal({
     const csvContent = [
         headers.join(','),
         ...filteredTransactions.map(tx => {
-            const category = tx.personal_finance_category?.primary 
-                ? `"${formatCategory(tx.personal_finance_category.primary)}"` 
-                : (tx.category ? `"${tx.category.join(';')}"` : '');
+            const displayCat = getDisplayCategory(tx);
+            const category = displayCat ? `"${displayCat}"` : (tx.category ? `"${tx.category.join(';')}"` : '');
             const name = `"${tx.name.replace(/"/g, '""')}"`;
             return [
                 tx.date,
@@ -928,9 +947,7 @@ NEWFILEUID:NONE
                                                                         {tx.name}
                                                                     </div>
                                                                     <div className="text-xs text-muted-foreground mt-0.5">
-                                                                        {tx.personal_finance_category?.primary 
-                                                                            ? formatCategory(tx.personal_finance_category.primary) 
-                                                                            : (tx.category ? tx.category[0] : 'Uncategorized')}
+                                                                        {getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized')}
                                                                     </div>
                                                                 </div>
                                                             </div>
