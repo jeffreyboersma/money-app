@@ -412,7 +412,9 @@ export default function AccountDetailsModal({
     const csvContent = [
         headers.join(','),
         ...filteredTransactions.map(tx => {
-            const category = tx.category ? `"${tx.category.join(';')}"` : '';
+            const category = tx.personal_finance_category?.primary 
+                ? `"${formatCategory(tx.personal_finance_category.primary)}"` 
+                : (tx.category ? `"${tx.category.join(';')}"` : '');
             const name = `"${tx.name.replace(/"/g, '""')}"`;
             return [
                 tx.date,
