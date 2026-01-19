@@ -29,6 +29,7 @@ interface AccountData {
     official_name: string | null;
     type: string;
     subtype: string;
+    mask: string;
     balances: {
       current: number;
       available: number | null;
@@ -610,12 +611,12 @@ NEWFILEUID:NONE
         onClick={(e) => e.stopPropagation()}
       >
         
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b bg-background/95 backdrop-blursupports-[backdrop-filter]:bg-background/60">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 pl-6 border-b bg-background/95 backdrop-blursupports-[backdrop-filter]:bg-background/60">
             <div>
                  {data ? (
                     <>
-                        <h2 className="text-xl font-bold">{data.account.name}</h2>
-                        <p className="text-sm text-muted-foreground">{data.account.type.toUpperCase()} • {data.account.subtype.toUpperCase()}</p>
+                        <h2 className="text-xl font-bold pb-2">{data.account.name}</h2>
+                        <p className="text-sm text-muted-foreground">{data.account.type.toUpperCase()} • {data.account.subtype.toUpperCase()} • {data.account.mask}</p>
                     </>
                  ) : (
                     <h2 className="text-xl font-bold">Account Details</h2>
