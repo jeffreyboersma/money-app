@@ -264,6 +264,18 @@ export default function AccountDetailsModal({
       }
 
       const result = await response.json();
+
+      // Fix for automatic payment transactions on credit cards being treated as money out (positive amount)
+      // when they should be money in (negative amount, reducing liability).
+      if (result.account && (result.account.type === 'credit' || result.account.subtype === 'credit card')) {
+        result.transactions = result.transactions.map((tx: Transaction) => {
+           if (tx.amount > 0 && tx.name.toLowerCase().includes('automatic payment') || tx.name.toLowerCase().includes('payment - thank')) {
+             return { ...tx, amount: -tx.amount };
+           }
+           return tx;
+        });
+      }
+
       setData(result);
       calculateBalanceHistory(result.account.balances.current, result.transactions);
     } catch (err: any) {
