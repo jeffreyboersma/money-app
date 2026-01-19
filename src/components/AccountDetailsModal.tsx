@@ -210,6 +210,20 @@ export default function AccountDetailsModal({
     return { start, end };
   };
 
+  // Reset date range when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedRange('30D');
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      setCustomStart(d.toISOString().split('T')[0]);
+      setCustomEnd(new Date().toISOString().split('T')[0]);
+      setDateError(null);
+      setData(null);
+      setBalanceHistory([]);
+    }
+  }, [isOpen]);
+
   // Reset state when modal opens/closes or account changes
   useEffect(() => {
     if (isOpen && accountId) {
@@ -783,9 +797,11 @@ NEWFILEUID:NONE
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                                    No data available
-                                </div>
+                                !loading && (
+                                    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                        No data available
+                                    </div>
+                                )
                             )}
                         </div>
                     </CardContent>
