@@ -685,7 +685,7 @@ NEWFILEUID:NONE
             </div>
             <div className="flex items-center gap-4">
                 {(institutionName || institutionLogo) && (
-                    <div className="flex items-center gap-3 border-r pr-4 mr-2 border-border/50">
+                    <div className="flex items-center gap-3 border-r pr-8">
                         {institutionLogo && (
                              <div className="w-8 h-8 flex items-center justify-center">
                                 <img
@@ -718,8 +718,8 @@ NEWFILEUID:NONE
 
           {!error && (
             <>
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center mt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="text-3xl font-bold text-primary min-h-[40px] flex items-center">
                         {data ? (
                             formatCurrency(data.account.balances.current, data.account.balances.iso_currency_code)
                         ) : (
@@ -728,13 +728,13 @@ NEWFILEUID:NONE
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
-                        <div className="flex flex-wrap items-center bg-muted/40 p-1 rounded-lg border gap-0.5">
+                        <div className="flex flex-wrap items-center bg-card p-1 rounded-lg border gap-0.5">
                           {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL', 'CUSTOM'] as const).map((r) => (
                             <Button
                               key={r}
                               variant="ghost"
                               size="sm"
-                              className={`h-7 px-2 text-xs hover:bg-background/50 ${selectedRange === r ? 'bg-background shadow-sm hover:bg-background text-foreground' : 'text-muted-foreground'}`}
+                              className={`h-7 px-2 text-xs hover:bg-background ${selectedRange === r ? 'bg-background border hover:bg-background text-foreground' : 'text-muted-foreground'}`}
                               onClick={() => setSelectedRange(r)}
                               disabled={loading && !data}
                             >
@@ -750,14 +750,14 @@ NEWFILEUID:NONE
                                         type="date" 
                                         value={customStart}
                                         onChange={(e) => setCustomStart(e.target.value)}
-                                        className={`h-8 rounded-md border bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                                        className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
                                     />
                                     <span className="text-muted-foreground text-xs">to</span>
                                     <input 
                                         type="date" 
                                         value={customEnd}
                                         onChange={(e) => setCustomEnd(e.target.value)}
-                                        className={`h-8 rounded-md border bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                                        className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
                                     />
                                     <Button
                                         variant="outline"
@@ -842,12 +842,17 @@ NEWFILEUID:NONE
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle>Transactions</CardTitle>
+                        <CardTitle className="flex items-center gap-3">
+                            Transactions
+                            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                {selectedRange === 'CUSTOM' ? 'Custom' : selectedRange}
+                            </span>
+                        </CardTitle>
                         <div className="relative" ref={downloadMenuRef}>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-2 text-muted-foreground hover:text-foreground"
+                                className={isDownloadMenuOpen ? "gap-2 text-foreground bg-accent border animate-in" : "gap-2 text-muted-foreground hover:text-foreground border border-transparent animate-in"}
                                 onClick={() => setIsDownloadMenuOpen(!isDownloadMenuOpen)}
                                 disabled={!data || data.transactions.length === 0}
                             >
@@ -856,9 +861,9 @@ NEWFILEUID:NONE
                             </Button>
                             
                             {isDownloadMenuOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-32 rounded-md border bg-popover p-1 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="text-muted-foreground absolute right-0 top-full w-26 bg-background rounded-md border bg-popover p-1 z-50 animate-in fade-in zoom-in-95 duration-200">
                                     <button
-                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 pt-0.5 pb-0.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                                         onClick={() => {
                                             handleExportCSV();
                                             setIsDownloadMenuOpen(false);
@@ -867,7 +872,7 @@ NEWFILEUID:NONE
                                         CSV
                                     </button>
                                     <button
-                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                                        className="relative flex w-full cursor-pointer select-none items-center rounded-sm px-2 pt-0.5 pb-0.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                                         onClick={() => {
                                             handleExportOFX();
                                             setIsDownloadMenuOpen(false);

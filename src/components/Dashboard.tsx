@@ -432,7 +432,7 @@ export default function Dashboard() {
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
-                            <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
+                            <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
                                 <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Group by:</span>
                                 <div className="flex gap-1">
                                     <Button
@@ -440,8 +440,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('institution')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                            ? 'bg-secondary text-foreground shadow-sm font-semibold'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary-foreground/5'
+                                            ? 'bg-background text-foreground font-semibold border'
+                                            : 'text-muted-foreground hover:text-foreground border border-transparent'
                                             }`}
                                     >
                                         Institution
@@ -451,8 +451,8 @@ export default function Dashboard() {
                                         size="sm"
                                         onClick={() => setSortBy('type')}
                                         className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                            ? 'bg-secondary text-foreground shadow-sm font-semibold'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary-foreground/5'
+                                            ? 'bg-background text-foreground font-semibold border'
+                                            : 'text-muted-foreground hover:text-foreground border border-transparent'
                                             }`}
                                     >
                                         Account Type
