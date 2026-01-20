@@ -121,16 +121,6 @@ const CustomTooltip = (props: any) => {
 
     return (
       <div className="relative pointer-events-none" style={{ width: width || '100%', height: height }}>
-        {/* Vertical Line - spanning the chart area only */}
-        <div 
-          className="absolute w-[1px] bg-border border-l border-foreground/30"
-          style={{ 
-            left: x, 
-            top: topMargin, 
-            height: height - topMargin - bottomMargin 
-          }}
-        />
-        
         {/* Top Label (Balance) - placed in the top margin area */}
         <div 
           className={labelClass}
@@ -980,7 +970,7 @@ NEWFILEUID:NONE
                                         <YAxis domain={['dataMin', 'dataMax']} hide />
                                         <Tooltip 
                                             content={<CustomTooltip topMargin={30} bottomMargin={20} />} 
-                                            cursor={false}
+                                            cursor={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }}
                                             position={{ x: 0, y: 0 }}
                                             isAnimationActive={false}
                                         />
@@ -991,6 +981,7 @@ NEWFILEUID:NONE
                                             strokeWidth={2}
                                             fillOpacity={1}
                                             fill="url(#colorBalance)"
+                                            activeDot={{ r: 4, fill: chartColor, strokeWidth: 0 }}
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
