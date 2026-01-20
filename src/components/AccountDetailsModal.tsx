@@ -1124,10 +1124,10 @@ NEWFILEUID:NONE
                                             width={140}
                                         />
                                         <text x="40%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                                            <tspan dx="-3em" dy="-0.5em" fontSize="18" fontWeight="bold" className="fill-foreground">
+                                            <tspan dx="-3.1em" dy="-0.25em" fontSize="18" fontWeight="bold" className="fill-foreground">
                                                 {formatCurrency(totalSpending, data?.account.balances.iso_currency_code || 'USD')}
                                             </tspan>
-                                            <tspan dx="-50" dy="1.5em" fontSize="12" className="fill-muted-foreground">
+                                            <tspan dx="-4.5em" dy="1.5em" fontSize="12" className="fill-muted-foreground">
                                                 Total
                                             </tspan>
                                         </text>
