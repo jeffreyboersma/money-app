@@ -45,6 +45,8 @@ interface AccountData {
     };
   };
   transactions: Transaction[];
+  total_transactions: number;
+  earliest_transaction_date?: string | null;
 }
 
 interface BalanceHistoryPoint {
@@ -153,6 +155,13 @@ const CustomTooltip = (props: any) => {
   return null;
 };
 
+const formatDateToLocalYMD = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function AccountDetailsModal({ 
   isOpen, 
   onClose, 
@@ -169,11 +178,12 @@ export default function AccountDetailsModal({
   const [customStart, setCustomStart] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
+    return formatDateToLocalYMD(d);
   });
-  const [customEnd, setCustomEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [customEnd, setCustomEnd] = useState<string>(() => formatDateToLocalYMD(new Date()));
   const [dateError, setDateError] = useState<string | null>(null);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+  const [earliestKnownDate, setEarliestKnownDate] = useState<string | null>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -248,17 +258,22 @@ export default function AccountDetailsModal({
       setSelectedRange('30D');
       const d = new Date();
       d.setDate(d.getDate() - 30);
-      setCustomStart(d.toISOString().split('T')[0]);
-      setCustomEnd(new Date().toISOString().split('T')[0]);
+      setCustomStart(formatDateToLocalYMD(d));
+      setCustomEnd(formatDateToLocalYMD(new Date()));
       setDateError(null);
       setData(null);
       setBalanceHistory([]);
+      setEarliestKnownDate(null);
     }
   }, [isOpen]);
 
   // Reset state when modal opens/closes or account changes
   useEffect(() => {
     if (isOpen && accountId) {
+      if (data?.account.account_id !== accountId) {
+        setEarliestKnownDate(null);
+      }
+
       if (selectedRange === 'CUSTOM') {
         if (customStart > customEnd) {
           setDateError('Start date cannot be after end date');
@@ -302,6 +317,7 @@ export default function AccountDetailsModal({
           account_id: accountId,
           startDate: start.toISOString(),
           endDate: end.toISOString(),
+          include_earliest_date: earliestKnownDate === null, // Only ask if we don't know it
         }),
       });
 
@@ -323,7 +339,98 @@ export default function AccountDetailsModal({
       }
 
       setData(result);
-      calculateBalanceHistory(result.account.balances.current, result.transactions);
+      
+      // Update earliest known date from API if provided
+      if (result.earliest_transaction_date) {
+        setEarliestKnownDate(result.earliest_transaction_date);
+      } else {
+        // Fallback logic if API didn't return it (e.g. legacy or not requested)
+        // Determine if we found the start of history
+        // Logic: If we requested a range, and we got ALL transactions in that range (fetched < limit? or fetched == total existent)
+      // AND the oldest transaction is significantly later than requested start date,
+      // OR we just assume oldest transaction IS the start if total_transactions matches length.
+      
+      // Plaid returns total_transactions for the requested range.
+      // If transactions.length === result.total_transactions, we have everything in the window [start, end].
+      // If result.total_transactions is small?
+      
+      const hasAllInWindow = result.transactions.length >= result.total_transactions;
+      
+      if (hasAllInWindow && result.transactions.length > 0) {
+          // Sort to find oldest in this batch
+          const sorted = [...result.transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          const oldestTx = sorted[0];
+          const oldestDate = new Date(oldestTx.date);
+          oldestDate.setHours(0,0,0,0);
+          
+          const requestedStart = new Date(start);
+          requestedStart.setHours(0,0,0,0);
+
+          // If oldest transaction is after requested start (plus margin), 
+          // or if we are in 'MAX' mode which is huge.
+          // Let's use a 7 day margin to be safe against dormant periods?
+          // Or just trust it. If I ask for 30 days, and I get 5 transactions, and oldest is 10 days ago.
+          // It means days 11-30 had no transactions.
+          // Does it mean history starts 10 days ago? Not necessarily. Could be dormant.
+          
+          // However, if we view a LARGE range, we are more confident.
+          // But user wants to disable ranges > 3M.
+          
+          // Better logic: Only update "known start date" if we are confident.
+          // If we haven't found a start date yet...
+          // Maybe we don't need to be perfect.
+          // If we encounter a transaction at date X. We know history goes AT LEAST to X.
+          // This doesn't help with disabling "older" ranges.
+          
+          // We need "History definitely does NOT go older than X".
+          // This happens if query [Start, End] returns transactions, and `total_transactions` indicates we got them all.
+          // AND `Start` is old enough that we EXPECTED more if account was older?
+          
+          // If I query 2 years. I get all transactions. Oldest is 1 year ago.
+          // Then start is 1 year ago.
+          
+          // If I query 30 days. I get all transactions. Oldest is 5 days ago.
+          // Start might be 5 days ago, or 5 years ago.
+          
+          // So we should only set `earliestKnownDate` if `range > 30D`?
+          // Or if `selectedRange` is large?
+          
+          if (['6M', '1Y', '2Y', 'YTD', 'MAX'].includes(selectedRange)) {
+             // We can be reasonably sure that the oldest transaction here is the start of history,
+             // OR that there is a gap of at least (Oldest - Start) with no transactions.
+             // If the gap is substantial, we can treat it as start.
+             
+             // Let's just set it to the oldest transaction found IF we have the full window.
+             // Because even if account is older, if there are no transactions for 6 months, 
+             // effectively the history for chart purposes starts there.
+             
+             // Update only if older than current known? No, we want to find the BOUNDARY.
+             // We want the *most restrictive* (latest) date that represents the start.
+             // Actually no, we want the *earliest* date.
+             // If we found a transaction in 2020. Earliest is 2020.
+             // If we found a transaction in 2024. Earliest is 2024? No 2020 exists.
+             
+             // Wait. `earliestKnownDate` should be the date of the First Ever Transaction.
+             // If we find a transaction at T1. The First Ever is <= T1.
+             // This doesn't help us DISABLE T0 (where T0 < T1).
+             
+             // We need to know: There are NO transactions before T1.
+             // This corresponds to: Query(T_ancient, T_now) returns oldest=T1.
+             // We queried [start, end].
+             // If `start` is before `oldestTx`, and we have all txs in [start, end].
+             // Then NO transactions exist in [start, oldestTx).
+             
+             const OneDay = 24 * 60 * 60 * 1000;
+             if (oldestDate.getTime() > requestedStart.getTime() + OneDay) {
+                 // There is a gap at the start of the window.
+                 // So oldestDate is effectively the start of history (or start of active history).
+                 setEarliestKnownDate(oldestTx.date);
+             }
+          }
+      }
+    }
+      
+      calculateBalanceHistory(result.account.balances.current, result.transactions, result.earliest_transaction_date || earliestKnownDate || null);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -331,7 +438,7 @@ export default function AccountDetailsModal({
     }
   }
 
-  const calculateBalanceHistory = (currentBalance: number, transactions: Transaction[]) => {
+  const calculateBalanceHistory = (currentBalance: number, transactions: Transaction[], knownEarliestDate: string | null = null) => {
     // We expect transactions from 'now' back to at least startDate.
     const sortedTransactions = [...transactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -347,6 +454,15 @@ export default function AccountDetailsModal({
       const lastTx = sortedTransactions[sortedTransactions.length - 1];
       const [y, m, d] = lastTx.date.split('-').map(Number);
       earliestTxTime = new Date(y, m - 1, d).getTime();
+    }
+
+    // Determine the hard stop time based on known history
+    let cutoffTime: number | null = null;
+    if (knownEarliestDate) {
+        const [y, m, d] = knownEarliestDate.split('-').map(Number);
+        cutoffTime = new Date(y, m - 1, d).getTime();
+    } else {
+        cutoffTime = earliestTxTime;
     }
 
     let tempBalance = currentBalance;
@@ -372,7 +488,7 @@ export default function AccountDetailsModal({
 
     // Loop until we go past the start date
     while (loopDate >= startDate && safetyCounter < MAX_DAYS) {
-        if (earliestTxTime !== null && loopDate.getTime() < earliestTxTime) {
+        if (cutoffTime !== null && loopDate.getTime() < cutoffTime) {
           break;
         }
 
@@ -740,18 +856,32 @@ NEWFILEUID:NONE
 
                     <div className="flex flex-col items-end gap-2">
                         <div className="flex flex-wrap items-center bg-card p-1 rounded-lg border gap-0.5">
-                          {(['1D', '1W', '30D', '3M', '6M', '1Y', '2Y', 'YTD', 'MAX', 'CUSTOM'] as const).map((r) => (
+                          {(['1D', '1W', '30D', '3M', '6M', '1Y', '2Y', 'YTD', 'MAX', 'CUSTOM'] as const).map((r) => {
+                            let isDisabled = false;
+                            // Only apply logic for ranges > 3M (and exclude MAX/CUSTOM)
+                            if (earliestKnownDate && ['6M', '1Y', '2Y', 'YTD'].includes(r)) {
+                                const { start } = getDateRange(r);
+                                const earliest = new Date(earliestKnownDate);
+                                earliest.setHours(0,0,0,0);
+                                start.setHours(0,0,0,0);
+                                if (start < earliest) {
+                                    isDisabled = true;
+                                }
+                            }
+
+                            return (
                             <Button
                               key={r}
                               variant="ghost"
                               size="sm"
                               className={`h-7 px-2 text-xs hover:bg-background ${selectedRange === r ? 'bg-background border hover:bg-background text-foreground' : 'text-muted-foreground'}`}
                               onClick={() => setSelectedRange(r)}
-                              disabled={loading && !data}
+                              disabled={(loading && !data) || isDisabled}
                             >
                               {r === 'CUSTOM' ? 'Custom' : r}
                             </Button>
-                          ))}
+                          );
+                          })}
                         </div>
 
                         {selectedRange === 'CUSTOM' && (
@@ -777,8 +907,8 @@ NEWFILEUID:NONE
                                         onClick={() => {
                                             const d = new Date();
                                             d.setDate(d.getDate() - 30);
-                                            setCustomStart(d.toISOString().split('T')[0]);
-                                            setCustomEnd(new Date().toISOString().split('T')[0]);
+                                            setCustomStart(formatDateToLocalYMD(d));
+                                            setCustomEnd(formatDateToLocalYMD(new Date()));
                                         }}
                                         title="Reset to past 30 days"
                                     >

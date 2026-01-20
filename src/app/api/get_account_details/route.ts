@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { access_tokens, account_id, startDate: queryStartDate, endDate: queryEndDate } = await request.json();
+    const { access_tokens, account_id, startDate: queryStartDate, endDate: queryEndDate, include_earliest_date } = await request.json();
 
     if (!access_tokens || !Array.isArray(access_tokens) || !account_id) {
       return NextResponse.json({ error: 'Missing access_tokens or account_id' }, { status: 400 });
@@ -51,6 +51,54 @@ export async function POST(request: Request) {
 
     const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
+    // Find earliest transaction date if requested
+    let earliest_transaction_date = null;
+    if (include_earliest_date) {
+      const tenYearsAgo = new Date();
+      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+      
+      const countResponse = await plaidClient.transactionsGet({
+        access_token: foundToken,
+        start_date: formatDate(tenYearsAgo),
+        end_date: formatDate(fetchEndDate),
+        options: {
+          account_ids: [account_id],
+          count: 1,
+          offset: 0
+        },
+      });
+      
+      const totalTx = countResponse.data.total_transactions;
+      if (totalTx > 0) {
+        // Fetch the very last (oldest) transaction
+        // offset cannot be > 10000 generally, but Plaid max transactions history is typically limited anyway.
+        // If > 5000, maybe take 5000? But we want the TRUE oldest.
+        // Let's rely on Plaid pagination.
+        const offset = Math.max(0, totalTx - 1);
+        
+        // Safety check if offset is too huge? 
+        // We'll try. If it fails, we catch error and ignore earliest_date.
+        try {
+          const oldestResponse = await plaidClient.transactionsGet({
+            access_token: foundToken,
+            start_date: formatDate(tenYearsAgo),
+            end_date: formatDate(fetchEndDate),
+            options: {
+               account_ids: [account_id],
+               count: 1,
+               offset: offset
+            }
+          });
+          
+          if (oldestResponse.data.transactions.length > 0) {
+            earliest_transaction_date = oldestResponse.data.transactions[0].date;
+          }
+        } catch (err) {
+           console.warn('Failed to fetch oldest transaction', err);
+        }
+      }
+    }
+
     // Get transactions
     const transactionsResponse = await plaidClient.transactionsGet({
       access_token: foundToken,
@@ -65,6 +113,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       account: accountInfo,
       transactions: transactionsResponse.data.transactions,
+      total_transactions: transactionsResponse.data.total_transactions,
+      earliest_transaction_date,
     });
 
   } catch (error: any) {
