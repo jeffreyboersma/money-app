@@ -27,7 +27,7 @@ interface Transaction {
   } | null;
 }
 
-type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '5Y' | 'YTD' | 'ALL' | 'CUSTOM';
+type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
 interface AccountData {
   account: {
@@ -229,13 +229,13 @@ export default function AccountDetailsModal({
       case '1Y':
         start.setFullYear(end.getFullYear() - 1);
         break;
-      case '5Y':
-        start.setFullYear(end.getFullYear() - 5);
+      case '2Y':
+        start.setFullYear(end.getFullYear() - 2);
         break;
       case 'YTD':
         start.setMonth(0, 1);
         break;
-      case 'ALL':
+      case 'MAX':
         start.setFullYear(end.getFullYear() - 10);
         break;
     }
@@ -342,6 +342,13 @@ export default function AccountDetailsModal({
         txMap[tx.date] = (txMap[tx.date] || 0) + tx.amount;
     });
 
+    let earliestTxTime: number | null = null;
+    if (sortedTransactions.length > 0) {
+      const lastTx = sortedTransactions[sortedTransactions.length - 1];
+      const [y, m, d] = lastTx.date.split('-').map(Number);
+      earliestTxTime = new Date(y, m - 1, d).getTime();
+    }
+
     let tempBalance = currentBalance;
     const historyPoints: BalanceHistoryPoint[] = [];
     
@@ -365,6 +372,10 @@ export default function AccountDetailsModal({
 
     // Loop until we go past the start date
     while (loopDate >= startDate && safetyCounter < MAX_DAYS) {
+        if (earliestTxTime !== null && loopDate.getTime() < earliestTxTime) {
+          break;
+        }
+
         const dateStr = loopDate.toISOString().split('T')[0];
 
         // Only add to history if we are within the requested [start, end] window
@@ -729,7 +740,7 @@ NEWFILEUID:NONE
 
                     <div className="flex flex-col items-end gap-2">
                         <div className="flex flex-wrap items-center bg-card p-1 rounded-lg border gap-0.5">
-                          {(['1D', '1W', '30D', '3M', '6M', '1Y', '5Y', 'YTD', 'ALL', 'CUSTOM'] as const).map((r) => (
+                          {(['1D', '1W', '30D', '3M', '6M', '1Y', '2Y', 'YTD', 'MAX', 'CUSTOM'] as const).map((r) => (
                             <Button
                               key={r}
                               variant="ghost"
@@ -794,6 +805,11 @@ NEWFILEUID:NONE
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="relative">
+                        <div className="absolute top-0 right-6 z-10">
+                            <p className="text-[10px] text-muted-foreground italic">
+                                * Transaction history may not be available beyond 3M.
+                            </p>
+                        </div>
                         {loading && (
                             <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all duration-200">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
