@@ -275,7 +275,7 @@ export default function AccountDetailsModal({
       if (customStart < earliestKnownDate) {
         const d = new Date(earliestKnownDate + 'T00:00:00');
         const formatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        setDateWarning(`Note: Transactions start from ${formatted}`);
+        setDateWarning(`Transactions only available starting from ${formatted}`);
       } else {
         setDateWarning(null);
       }
