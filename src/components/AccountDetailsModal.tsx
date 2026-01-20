@@ -182,6 +182,7 @@ export default function AccountDetailsModal({
   });
   const [customEnd, setCustomEnd] = useState<string>(() => formatDateToLocalYMD(new Date()));
   const [dateError, setDateError] = useState<string | null>(null);
+  const [dateWarning, setDateWarning] = useState<string | null>(null);
   const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
   const [earliestKnownDate, setEarliestKnownDate] = useState<string | null>(null);
   const downloadMenuRef = useRef<HTMLDivElement>(null);
@@ -261,11 +262,27 @@ export default function AccountDetailsModal({
       setCustomStart(formatDateToLocalYMD(d));
       setCustomEnd(formatDateToLocalYMD(new Date()));
       setDateError(null);
+      setDateWarning(null);
       setData(null);
       setBalanceHistory([]);
       setEarliestKnownDate(null);
     }
   }, [isOpen]);
+
+  // Warning for custom date selection relative to earliest known data
+  useEffect(() => {
+    if (selectedRange === 'CUSTOM' && earliestKnownDate) {
+      if (customStart < earliestKnownDate) {
+        const d = new Date(earliestKnownDate + 'T00:00:00');
+        const formatted = d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        setDateWarning(`Note: Transactions start from ${formatted}`);
+      } else {
+        setDateWarning(null);
+      }
+    } else {
+      setDateWarning(null);
+    }
+  }, [selectedRange, customStart, earliestKnownDate]);
 
   // Reset state when modal opens/closes or account changes
   useEffect(() => {
@@ -918,6 +935,11 @@ NEWFILEUID:NONE
                                 {dateError && (
                                     <span className="text-xs text-red-500 font-medium">
                                         {dateError}
+                                    </span>
+                                )}
+                                {!dateError && dateWarning && (
+                                    <span className="text-xs text-amber-500 font-medium">
+                                        {dateWarning}
                                     </span>
                                 )}
                             </div>
