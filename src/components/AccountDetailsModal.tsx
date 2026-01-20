@@ -155,17 +155,17 @@ const CustomPieTooltip = ({ active, payload, currency }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0];
     return (
-      <div className="rounded-lg border bg-popover p-2 shadow-sm">
-        <div className="flex items-center gap-2">
+      <div className="rounded-md border bg-background px-3 py-2 shadow-lg">
+        <div className="flex items-center gap-2 mb-1">
           <div 
             className="h-2 w-2 rounded-full" 
             style={{ backgroundColor: data.payload.fill }}
           />
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">
             {data.name}
           </span>
         </div>
-        <div className="mt-1 text-2xl font-bold text-foreground">
+        <div className="text-sm font-bold text-foreground tabular-nums text-right">
           {new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: currency || 'USD',
@@ -1112,12 +1112,14 @@ NEWFILEUID:NONE
                                         <Tooltip 
                                             content={<CustomPieTooltip currency={data?.account.balances.iso_currency_code} />}
                                             cursor={false} 
+                                            isAnimationActive={false}
                                         />
                                         <Legend 
                                             layout="vertical" 
                                             verticalAlign="middle" 
                                             align="right"
                                             iconType="circle"
+                                            formatter={(value) => <span className="text-muted-foreground py-1 inline-block">{value}</span>}
                                             wrapperStyle={{ fontSize: '12px', color: 'var(--muted-foreground)' }}
                                             width={140}
                                         />
