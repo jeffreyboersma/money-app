@@ -8,6 +8,7 @@ import {
   AreaChart,
   Area,
   XAxis,
+  YAxis,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
@@ -122,7 +123,7 @@ const CustomTooltip = (props: any) => {
       <div className="relative pointer-events-none" style={{ width: width || '100%', height: height }}>
         {/* Vertical Line - spanning the chart area only */}
         <div 
-          className="absolute w-[1px] bg-border border-l border-dashed border-foreground/30"
+          className="absolute w-[1px] bg-border border-l border-foreground/30"
           style={{ 
             left: x, 
             top: topMargin, 
@@ -133,7 +134,7 @@ const CustomTooltip = (props: any) => {
         {/* Top Label (Balance) - placed in the top margin area */}
         <div 
           className={labelClass}
-          style={{ ...labelStyle, top: 10 }} // Fixed distance from top of container
+          style={{ ...labelStyle, top: 0 }} // Fixed distance from top of container
         >
           <div>
             <span className="text-lg font-bold tracking-tight">{formattedValue}</span>
@@ -143,7 +144,7 @@ const CustomTooltip = (props: any) => {
         {/* Bottom Label (Date) - placed in the bottom margin area */}
         <div 
           className={labelClass}
-          style={{ ...labelStyle, bottom: 20 }} // Fixed distance from bottom of container
+          style={{ ...labelStyle, bottom: 0 }} // Fixed distance from bottom of container
         >
           <div className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase whitespace-nowrap">
              {formattedDate}
@@ -967,7 +968,7 @@ NEWFILEUID:NONE
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart 
                                         data={balanceHistory}
-                                        margin={{ top: 40, right: 0, left: 0, bottom: 40 }}
+                                        margin={{ top: 30, right: 0, left: 0, bottom: 20 }}
                                     >
                                         <defs>
                                             <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
@@ -976,8 +977,9 @@ NEWFILEUID:NONE
                                             </linearGradient>
                                         </defs>
                                         <XAxis dataKey="date" hide />
+                                        <YAxis domain={['dataMin', 'dataMax']} hide />
                                         <Tooltip 
-                                            content={<CustomTooltip topMargin={40} bottomMargin={40} />} 
+                                            content={<CustomTooltip topMargin={30} bottomMargin={20} />} 
                                             cursor={false}
                                             position={{ x: 0, y: 0 }}
                                             isAnimationActive={false}
