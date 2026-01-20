@@ -957,11 +957,6 @@ NEWFILEUID:NONE
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="relative">
-                        <div className="absolute top-0 right-6 z-10">
-                            <p className="text-[10px] text-muted-foreground italic">
-                                * Transaction history may not be available beyond 3M.
-                            </p>
-                        </div>
                         {loading && (
                             <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all duration-200">
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
