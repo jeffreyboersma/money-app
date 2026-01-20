@@ -7,6 +7,11 @@ import { X, Loader2, RotateCcw, Download } from 'lucide-react';
 import {
   AreaChart,
   Area,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  Label,
   XAxis,
   YAxis,
   Tooltip,
@@ -139,6 +144,32 @@ const CustomTooltip = (props: any) => {
           <div className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase whitespace-nowrap">
              {formattedDate}
           </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomPieTooltip = ({ active, payload, currency }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="rounded-lg border bg-popover p-2 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div 
+            className="h-2 w-2 rounded-full" 
+            style={{ backgroundColor: data.payload.fill }}
+          />
+          <span className="text-sm font-medium text-foreground">
+            {data.name}
+          </span>
+        </div>
+        <div className="mt-1 text-2xl font-bold text-foreground">
+          {new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: currency || 'USD',
+          }).format(data.value)}
         </div>
       </div>
     );
@@ -543,6 +574,52 @@ export default function AccountDetailsModal({
     if (last < first) return '#ef4444';
     return '#9ca3af';
   }, [balanceHistory]);
+
+  const spendingData = React.useMemo(() => {
+    if (!data || !data.transactions) return [];
+
+    const { start, end } = getDateRange(selectedRange);
+    const toDateStr = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    const startDateStr = toDateStr(start);
+    const endDateStr = toDateStr(end);
+
+    const categoryTotals: Record<string, number> = {};
+
+    data.transactions.forEach(tx => {
+        // Only count positive amounts (expenses) and within date range
+        if (tx.date >= startDateStr && tx.date <= endDateStr && tx.amount > 0) {
+            const category = getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized');
+            categoryTotals[category] = (categoryTotals[category] || 0) + tx.amount;
+        }
+    });
+
+    const sortedCategories = Object.entries(categoryTotals)
+        .sort(([, a], [, b]) => b - a)
+        .map(([name, value]) => ({ name, value }));
+
+    // Group into top 5 + Other
+    if (sortedCategories.length > 5) {
+        const top5 = sortedCategories.slice(0, 5);
+        const otherValue = sortedCategories.slice(5).reduce((sum, item) => sum + item.value, 0);
+        if (otherValue > 0) {
+            top5.push({ name: 'Other', value: otherValue });
+        }
+        return top5;
+    }
+
+    return sortedCategories;
+  }, [data, selectedRange]);
+
+  const totalSpending = React.useMemo(() => {
+    return spendingData.reduce((acc, curr) => acc + curr.value, 0);
+  }, [spendingData]);
+
+  const COLORS = ['#0ea5e9', '#22c55e', '#eab308', '#f97316', '#ef4444', '#a855f7', '#64748b'];
 
   const handleExportCSV = () => {
     if (!data || !data.transactions) return;
@@ -991,6 +1068,73 @@ NEWFILEUID:NONE
                                         No data available
                                     </div>
                                 )
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3">
+                            Spending Summary
+                            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                {selectedRange === 'CUSTOM' ? 'Custom' : selectedRange}
+                            </span>
+                        </CardTitle>
+                        <CardDescription>
+                            Spending by category for the selected period
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px] transition-all duration-200">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        )}
+                        <div className="h-[300px] w-full">
+                            {spendingData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={spendingData}
+                                            cx="40%"
+                                            cy="50%"
+                                            innerRadius={85}
+                                            outerRadius={115}
+                                            paddingAngle={2}
+                                            dataKey="value"
+                                            stroke="none"
+                                        >
+                                            {spendingData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip 
+                                            content={<CustomPieTooltip currency={data?.account.balances.iso_currency_code} />}
+                                            cursor={false} 
+                                        />
+                                        <Legend 
+                                            layout="vertical" 
+                                            verticalAlign="middle" 
+                                            align="right"
+                                            iconType="circle"
+                                            wrapperStyle={{ fontSize: '12px', color: 'var(--muted-foreground)' }}
+                                            width={140}
+                                        />
+                                        <text x="40%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                                            <tspan dx="-3em" dy="-0.5em" fontSize="18" fontWeight="bold" className="fill-foreground">
+                                                {formatCurrency(totalSpending, data?.account.balances.iso_currency_code || 'USD')}
+                                            </tspan>
+                                            <tspan dx="-50" dy="1.5em" fontSize="12" className="fill-muted-foreground">
+                                                Total
+                                            </tspan>
+                                        </text>
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                    No spending data available for this period
+                                </div>
                             )}
                         </div>
                     </CardContent>
