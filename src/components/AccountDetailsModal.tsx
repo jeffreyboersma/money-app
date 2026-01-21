@@ -1119,15 +1119,15 @@ NEWFILEUID:NONE
                                             verticalAlign="middle" 
                                             align="right"
                                             iconType="circle"
-                                            formatter={(value) => <span className="text-muted-foreground py-1 inline-block">{value}</span>}
+                                            formatter={(value) => <span className="text-muted-foreground py-1 inline-block align-middle">{value}</span>}
                                             wrapperStyle={{ fontSize: '12px', color: 'var(--muted-foreground)' }}
-                                            width={140}
+                                            width={180}
                                         />
                                         <text x="40%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                                            <tspan dx="-3.1em" dy="-0.25em" fontSize="18" fontWeight="bold" className="fill-foreground">
+                                            <tspan dx="-3.9em" dy="-0.25em" fontSize="18" fontWeight="bold" className="fill-foreground">
                                                 {formatCurrency(totalSpending, data?.account.balances.iso_currency_code || 'USD')}
                                             </tspan>
-                                            <tspan dx="-4.5em" dy="1.5em" fontSize="12" className="fill-muted-foreground">
+                                            <tspan dx="-5em" dy="1.6em" fontSize="12" className="fill-muted-foreground">
                                                 Total
                                             </tspan>
                                         </text>
