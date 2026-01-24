@@ -8,6 +8,8 @@ import { Loader2, Wallet, RefreshCw, AlertCircle, Trash2, Building2, ChevronDown
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Image from 'next/image';
+import SpendingAnalysis from './SpendingAnalysis';
 
 const formatCurrency = (amount: number) => {
     const isNegative = amount < 0;
@@ -73,6 +75,7 @@ export default function Dashboard() {
     const [sortBy, setSortBy] = useState<'institution' | 'type'>('institution');
     const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
     const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'spending'>('dashboard');
 
     // Find the selected account object to pass inst data
     const selectedAccount = allAccounts.find(acc => acc.account_id === selectedAccountId);
@@ -275,11 +278,37 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h2 className="text-3xl font-thin tracking-wider text-foreground">Dashboard</h2>
-                    <p className="font-thin tracking-wider text-muted-foreground">Get a clear picture of your finances.</p>
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
+                <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-start">
+                    <div className="flex items-center">
+                        <Image
+                            src="/soldi_logo.png"
+                            alt="soldi"
+                            width={100}
+                            height={30}
+                            priority
+                            className="object-contain brightness-0 dark:brightness-100"
+                        />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant={activeTab === 'dashboard' ? "secondary" : "ghost"}
+                            className="text-sm font-medium"
+                            onClick={() => setActiveTab('dashboard')}
+                        >
+                            Dashboard
+                        </Button>
+                        <Button 
+                            variant={activeTab === 'spending' ? "secondary" : "ghost"}
+                            className="text-sm font-medium"
+                            onClick={() => setActiveTab('spending')}
+                        >
+                            Spending Analysis
+                        </Button>
+                    </div>
                 </div>
+
                 <div className="flex items-center gap-3">
                     <ThemeToggle />
                     <LinkButton onSuccess={handleLinkSuccess} />
@@ -297,266 +326,279 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5" />
-                    <p>{error}</p>
-                </div>
-            )}
-
-            {accessTokens.length === 0 && !loading && (
-                <Card className="max-w-md mx-auto">
-                    <CardHeader className="text-center">
-                        <div className="mx-auto w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
-                            <Building2 className="h-6 w-6 text-muted-foreground" />
+            {activeTab === 'dashboard' ? (
+                <>
+                    <div className="flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 className="text-3xl font-thin tracking-wider text-foreground">Dashboard</h2>
+                            <p className="font-thin tracking-wider text-muted-foreground">Get a clear picture of your finances.</p>
                         </div>
-                        <CardTitle className="text-2xl text-foreground">Connect your first bank</CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                            Link your financial accounts to see all your balances and transactions in one place.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex justify-center pb-8">
-                        <LinkButton onSuccess={handleLinkSuccess} />
-                    </CardContent>
-                </Card>
-            )}
-
-            {allAccounts.length > 0 && (
-                <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash & Investments</CardTitle>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Includes all checking, savings, and investment accounts.</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-foreground">
-                                    {formatCurrency(cashAndInvestmentsBalance)}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Calculated as (Cash + Investments) - (Credit Cards + Loans). Other account types are excluded.</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-foreground">
-                                    {formatCurrency(totalBalance)}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Linked Institutions</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-foreground">{accessTokens.length}</div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Active Accounts</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-3xl font-bold text-foreground">{allAccounts.length}</div>
-                            </CardContent>
-                        </Card>
                     </div>
 
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-foreground">Linked Institutions</h3>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {Object.entries(institutions)
-                                .sort(([, a], [, b]) => a.name.localeCompare(b.name))
-                                .map(([token, info]) => (
-                                    <Card key={token}>
-                                        <div className="p-4 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                {info.logo ? (
-                                                    <div className="w-10 h-10 flex items-center justify-center">
-                                                        <img
-                                                            src={`data:image/png;base64,${info.logo}`}
-                                                            alt={info.name}
-                                                            className="max-w-full max-h-full object-contain"
-                                                        />
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg flex items-center gap-3">
+                            <AlertCircle className="h-5 w-5" />
+                            <p>{error}</p>
+                        </div>
+                    )}
+
+                    {accessTokens.length === 0 && !loading && (
+                        <Card className="max-w-md mx-auto">
+                            <CardHeader className="text-center">
+                                <div className="mx-auto w-12 h-12 bg-secondary rounded-full flex items-center justify-center mb-4">
+                                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                                <CardTitle className="text-2xl text-foreground">Connect your first bank</CardTitle>
+                                <CardDescription className="text-muted-foreground">
+                                    Link your financial accounts to see all your balances and transactions in one place.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex justify-center pb-8">
+                                <LinkButton onSuccess={handleLinkSuccess} />
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {allAccounts.length > 0 && (
+                        <div className="space-y-6">
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cash & Investments</CardTitle>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Includes all checking, savings, and investment accounts.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold text-foreground">
+                                            {formatCurrency(cashAndInvestmentsBalance)}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Net Worth</CardTitle>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Info className="h-4 w-4 text-muted-foreground/50 hover:text-foreground cursor-help transition-colors" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>Calculated as (Cash + Investments) - (Credit Cards + Loans). Other account types are excluded.</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold text-foreground">
+                                            {formatCurrency(totalBalance)}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground">Linked Institutions</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold text-foreground">{accessTokens.length}</div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground">Active Accounts</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-3xl font-bold text-foreground">{allAccounts.length}</div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-foreground">Linked Institutions</h3>
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {Object.entries(institutions)
+                                        .sort(([, a], [, b]) => a.name.localeCompare(b.name))
+                                        .map(([token, info]) => (
+                                            <Card key={token}>
+                                                <div className="p-4 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        {info.logo ? (
+                                                            <div className="w-10 h-10 flex items-center justify-center">
+                                                                <img
+                                                                    src={`data:image/png;base64,${info.logo}`}
+                                                                    alt={info.name}
+                                                                    className="max-w-full max-h-full object-contain"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                                                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <span className="font-medium text-foreground">{info.name}</span>
                                                     </div>
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                                                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                                                    </div>
-                                                )}
-                                                <span className="font-medium text-foreground">{info.name}</span>
-                                            </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleRemoveInstitution(token)}
+                                                        disabled={removingToken === token}
+                                                        className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                                                    >
+                                                        {removingToken === token ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                    <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
+                                    <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
+                                        <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Group by:</span>
+                                        <div className="flex gap-1">
                                             <Button
                                                 variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleRemoveInstitution(token)}
-                                                disabled={removingToken === token}
-                                                className="text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
+                                                size="sm"
+                                                onClick={() => setSortBy('institution')}
+                                                className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
+                                                    ? 'bg-background text-foreground font-semibold border'
+                                                    : 'text-muted-foreground hover:text-foreground border border-transparent'
+                                                    }`}
                                             >
-                                                {removingToken === token ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Trash2 className="h-4 w-4" />
-                                                )}
+                                                Institution
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSortBy('type')}
+                                                className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
+                                                    ? 'bg-background text-foreground font-semibold border'
+                                                    : 'text-muted-foreground hover:text-foreground border border-transparent'
+                                                    }`}
+                                            >
+                                                Account Type
                                             </Button>
                                         </div>
-                                    </Card>
-                                ))}
-                        </div>
-                    </div>
+                                    </div>
+                                </div>
 
-                    <div className="space-y-4">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <h3 className="text-lg font-semibold text-foreground">Accounts</h3>
-                            <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
-                                <span className="text-xs text-muted-foreground px-2 font-medium uppercase tracking-wider">Group by:</span>
-                                <div className="flex gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setSortBy('institution')}
-                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'institution'
-                                            ? 'bg-background text-foreground font-semibold border'
-                                            : 'text-muted-foreground hover:text-foreground border border-transparent'
-                                            }`}
-                                    >
-                                        Institution
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setSortBy('type')}
-                                        className={`h-7 px-3 text-xs rounded-md transition-all ${sortBy === 'type'
-                                            ? 'bg-background text-foreground font-semibold border'
-                                            : 'text-muted-foreground hover:text-foreground border border-transparent'
-                                            }`}
-                                    >
-                                        Account Type
-                                    </Button>
+                                <div className="space-y-8">
+                                    {Object.entries(groupedAccounts).map(([groupName, groupData]: [string, any]) => {
+                                        const isCollapsed = collapsedSections.has(groupName);
+                                        const isNested = sortBy === 'type';
+                                        const totalAccounts = isNested
+                                            ? Object.values(groupData).reduce((sum: number, sub: any) => sum + sub.length, 0)
+                                            : groupData.length;
+
+                                        return (
+                                            <div key={groupName} className="space-y-6">
+                                                <button
+                                                    onClick={() => toggleSection(groupName)}
+                                                    className="flex items-center gap-4 w-full group/header focus:outline-none"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {isCollapsed ? (
+                                                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
+                                                        ) : (
+                                                            <ChevronDown className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
+                                                        )}
+                                                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider group-hover/header:text-foreground transition-colors">
+                                                            {groupName === 'Depository' ? 'Cash & Checking' : groupName}
+                                                            <span className="ml-2 text-[10px] font-normal lowercase tracking-normal opacity-60">
+                                                                ({totalAccounts} {totalAccounts === 1 ? 'account' : 'accounts'})
+                                                            </span>
+                                                        </h4>
+                                                    </div>
+                                                    <div className="h-[1px] flex-1 bg-border group-hover/header:bg-muted-foreground/30 transition-colors"></div>
+                                                </button>
+
+                                                {!isCollapsed && (
+                                                    <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                        {isNested ? (
+                                                            Object.entries(groupData).map(([subtypeName, accounts]: [string, any]) => {
+                                                                const subSectionKey = `${groupName}:${subtypeName}`;
+                                                                const isSubCollapsed = collapsedSections.has(subSectionKey);
+                                                                return (
+                                                                    <div key={subtypeName} className="space-y-4 ml-6">
+                                                                        <button
+                                                                            onClick={() => toggleSection(subSectionKey)}
+                                                                            className="flex items-center gap-3 w-full group/sub focus:outline-none"
+                                                                        >
+                                                                            <div className="h-px bg-muted-foreground/20 group-hover/sub:bg-muted-foreground/40 transition-colors"></div>
+                                                                            {isSubCollapsed ? (
+                                                                                <ChevronRight className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
+                                                                            ) : (
+                                                                                <ChevronDown className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
+                                                                            )}
+                                                                            <h5 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest group-hover/sub:text-foreground transition-colors">
+                                                                                {subtypeName}
+                                                                                <span className="ml-2 font-normal lowercase tracking-normal opacity-60">
+                                                                                    ({accounts.length})
+                                                                                </span>
+                                                                            </h5>
+                                                                            <div className="h-px flex-1 bg-muted-foreground/10 group-hover/sub:bg-muted-foreground/20 transition-colors"></div>
+                                                                        </button>
+                                                                        {!isSubCollapsed && (
+                                                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                                {accounts.map((account: any, idx: number) => (
+                                                                                    <AccountCard 
+                                                                                        key={`${account.account_id}-${idx}`} 
+                                                                                        account={account} 
+                                                                                        onClick={() => setSelectedAccountId(account.account_id)}
+                                                                                    />
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                                                {groupData.map((account: any, idx: number) => (
+                                                                    <AccountCard 
+                                                                        key={`${account.account_id}-${idx}`} 
+                                                                        account={account} 
+                                                                        onClick={() => setSelectedAccountId(account.account_id)}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        <div className="space-y-8">
-                            {Object.entries(groupedAccounts).map(([groupName, groupData]: [string, any]) => {
-                                const isCollapsed = collapsedSections.has(groupName);
-                                const isNested = sortBy === 'type';
-                                const totalAccounts = isNested
-                                    ? Object.values(groupData).reduce((sum: number, sub: any) => sum + sub.length, 0)
-                                    : groupData.length;
-
-                                return (
-                                    <div key={groupName} className="space-y-6">
-                                        <button
-                                            onClick={() => toggleSection(groupName)}
-                                            className="flex items-center gap-4 w-full group/header focus:outline-none"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {isCollapsed ? (
-                                                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
-                                                ) : (
-                                                    <ChevronDown className="h-4 w-4 text-muted-foreground group-hover/header:text-foreground transition-colors" />
-                                                )}
-                                                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider group-hover/header:text-foreground transition-colors">
-                                                    {groupName === 'Depository' ? 'Cash & Checking' : groupName}
-                                                    <span className="ml-2 text-[10px] font-normal lowercase tracking-normal opacity-60">
-                                                        ({totalAccounts} {totalAccounts === 1 ? 'account' : 'accounts'})
-                                                    </span>
-                                                </h4>
-                                            </div>
-                                            <div className="h-[1px] flex-1 bg-border group-hover/header:bg-muted-foreground/30 transition-colors"></div>
-                                        </button>
-
-                                        {!isCollapsed && (
-                                            <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                {isNested ? (
-                                                    Object.entries(groupData).map(([subtypeName, accounts]: [string, any]) => {
-                                                        const subSectionKey = `${groupName}:${subtypeName}`;
-                                                        const isSubCollapsed = collapsedSections.has(subSectionKey);
-                                                        return (
-                                                            <div key={subtypeName} className="space-y-4 ml-6">
-                                                                <button
-                                                                    onClick={() => toggleSection(subSectionKey)}
-                                                                    className="flex items-center gap-3 w-full group/sub focus:outline-none"
-                                                                >
-                                                                    <div className="h-px bg-muted-foreground/20 group-hover/sub:bg-muted-foreground/40 transition-colors"></div>
-                                                                    {isSubCollapsed ? (
-                                                                        <ChevronRight className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
-                                                                    ) : (
-                                                                        <ChevronDown className="h-3 w-3 text-muted-foreground/40 group-hover/sub:text-foreground transition-colors" />
-                                                                    )}
-                                                                    <h5 className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest group-hover/sub:text-foreground transition-colors">
-                                                                        {subtypeName}
-                                                                        <span className="ml-2 font-normal lowercase tracking-normal opacity-60">
-                                                                            ({accounts.length})
-                                                                        </span>
-                                                                    </h5>
-                                                                    <div className="h-px flex-1 bg-muted-foreground/10 group-hover/sub:bg-muted-foreground/20 transition-colors"></div>
-                                                                </button>
-                                                                {!isSubCollapsed && (
-                                                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                                        {accounts.map((account: any, idx: number) => (
-                                                                            <AccountCard 
-                                                                                key={`${account.account_id}-${idx}`} 
-                                                                                account={account} 
-                                                                                onClick={() => setSelectedAccountId(account.account_id)}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })
-                                                ) : (
-                                                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                                        {groupData.map((account: any, idx: number) => (
-                                                            <AccountCard 
-                                                                key={`${account.account_id}-${idx}`} 
-                                                                account={account} 
-                                                                onClick={() => setSelectedAccountId(account.account_id)}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                    {loading && allAccounts.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                            <Loader2 className="h-10 w-10 animate-spin text-neutral-600" />
+                            <p className="text-neutral-500 animate-pulse">Fetching account data...</p>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {loading && allAccounts.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                    <Loader2 className="h-10 w-10 animate-spin text-neutral-600" />
-                    <p className="text-neutral-500 animate-pulse">Fetching account data...</p>
-                </div>
+                    )}
+                </>
+            ) : (
+                <SpendingAnalysis accounts={allAccounts} accessTokens={accessTokens} />
             )}
 
             <AccountDetailsModal
