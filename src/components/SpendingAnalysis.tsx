@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X, Wallet } from 'lucide-react';
 import ImportTransactionsDialog from '@/components/ImportTransactionsDialog';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
@@ -95,6 +96,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [importedAccounts, setImportedAccounts] = useState<ImportedAccount[]>([]);
     const [importedTransactions, setImportedTransactions] = useState<Transaction[]>([]);
+
+    // Chart configuration state
+    const [chartTimePeriod, setChartTimePeriod] = useState<'day' | 'week' | 'month'>('week');
+    const [chartGroupBy, setChartGroupBy] = useState<'category' | 'account' | 'institution'>('category');
+    const [hiddenChartItems, setHiddenChartItems] = useState<Set<string>>(new Set());
+    const [hoveredChartItem, setHoveredChartItem] = useState<string | null>(null);
 
     // Time range state
     const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
@@ -357,6 +364,140 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             : <ArrowDown className="h-3 w-3" />;
     };
 
+    // Process data for stacked bar chart
+    const chartData = useMemo(() => {
+        if (sortedTransactions.length === 0) return [];
+
+        // Group transactions by time period
+        const groupedByPeriod: Record<string, Transaction[]> = {};
+        
+        sortedTransactions.forEach(tx => {
+            const date = new Date(tx.date);
+            let periodKey: string;
+
+            if (chartTimePeriod === 'day') {
+                periodKey = date.toISOString().split('T')[0];
+            } else if (chartTimePeriod === 'week') {
+                // Get week start (Sunday)
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                periodKey = weekStart.toISOString().split('T')[0];
+            } else { // month
+                periodKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            if (!groupedByPeriod[periodKey]) {
+                groupedByPeriod[periodKey] = [];
+            }
+            groupedByPeriod[periodKey].push(tx);
+        });
+
+        // Get all unique grouping keys (categories, accounts, or institutions)
+        const groupKeys = new Set<string>();
+        sortedTransactions.forEach(tx => {
+            let key: string;
+            if (chartGroupBy === 'category') {
+                key = getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized');
+            } else if (chartGroupBy === 'account') {
+                const account = accounts.find(a => a.account_id === tx.account_id) || 
+                               importedAccounts.find(a => a.account_id === tx.account_id);
+                key = account ? account.name : 'Unknown';
+            } else { // institution
+                const account = accounts.find(a => a.account_id === tx.account_id) || 
+                               importedAccounts.find(a => a.account_id === tx.account_id);
+                key = account ? account.institution_name : 'Unknown';
+            }
+            groupKeys.add(key);
+        });
+
+        // Build chart data
+        const data = Object.entries(groupedByPeriod)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([period, txs]) => {
+                const dataPoint: any = { period };
+                
+                // Format period label
+                if (chartTimePeriod === 'day') {
+                    dataPoint.periodLabel = new Date(period).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                } else if (chartTimePeriod === 'week') {
+                    const weekStart = new Date(period);
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    dataPoint.periodLabel = `${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+                } else { // month
+                    const [year, month] = period.split('-');
+                    dataPoint.periodLabel = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+                }
+
+                // Group transactions within this period
+                const grouped: Record<string, number> = {};
+                txs.forEach(tx => {
+                    let key: string;
+                    if (chartGroupBy === 'category') {
+                        key = getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized');
+                    } else if (chartGroupBy === 'account') {
+                        const account = accounts.find(a => a.account_id === tx.account_id) || 
+                                       importedAccounts.find(a => a.account_id === tx.account_id);
+                        key = account ? account.name : 'Unknown';
+                    } else { // institution
+                        const account = accounts.find(a => a.account_id === tx.account_id) || 
+                                       importedAccounts.find(a => a.account_id === tx.account_id);
+                        key = account ? account.institution_name : 'Unknown';
+                    }
+
+                    if (!grouped[key]) grouped[key] = 0;
+                    grouped[key] += tx.amount;
+                });
+
+                // Add all groups to data point
+                groupKeys.forEach(key => {
+                    dataPoint[key] = grouped[key] || 0;
+                });
+
+                return dataPoint;
+            });
+
+        return data;
+    }, [sortedTransactions, chartTimePeriod, chartGroupBy, accounts, importedAccounts]);
+
+    // Generate colors for chart bars
+    const chartColors = useMemo(() => {
+        const keys = chartData.length > 0 ? Object.keys(chartData[0]).filter(k => k !== 'period' && k !== 'periodLabel') : [];
+        const colors = [
+            '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+            '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+            '#06b6d4', '#f43f5e', '#22c55e', '#eab308', '#a855f7'
+        ];
+        
+        const colorMap: Record<string, string> = {};
+        keys.forEach((key, i) => {
+            colorMap[key] = colors[i % colors.length];
+        });
+        
+        return { keys, colorMap };
+    }, [chartData]);
+
+    // Reset hidden items when groupBy changes
+    useEffect(() => {
+        setHiddenChartItems(new Set());
+    }, [chartGroupBy]);
+
+    const toggleChartItem = (item: string) => {
+        setHiddenChartItems(prev => {
+            const next = new Set(prev);
+            if (next.has(item)) {
+                next.delete(item);
+            } else {
+                next.add(item);
+            }
+            return next;
+        });
+    };
+
+    const visibleChartKeys = useMemo(() => {
+        return chartColors.keys.filter(key => !hiddenChartItems.has(key));
+    }, [chartColors.keys, hiddenChartItems]);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -543,6 +684,148 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     </Card>
                 ))}
             </div>
+
+            {/* Spending Chart Section */}
+            {selectedAccountIds.size > 0 && sortedTransactions.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <CardTitle className="text-lg">Spending Overview</CardTitle>
+                            <div className="flex flex-wrap gap-2">
+                                <div className="flex items-center bg-card border rounded-lg p-1 gap-0.5">
+                                    {(['day', 'week', 'month'] as const).map((period) => (
+                                        <Button
+                                            key={period}
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`h-7 px-3 text-xs capitalize ${
+                                                chartTimePeriod === period 
+                                                    ? 'bg-background border hover:bg-background text-foreground' 
+                                                    : 'text-muted-foreground'
+                                            }`}
+                                            onClick={() => setChartTimePeriod(period)}
+                                        >
+                                            {period}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <div className="flex items-center bg-card border rounded-lg p-1 gap-0.5">
+                                    {(['category', 'account', 'institution'] as const).map((group) => (
+                                        <Button
+                                            key={group}
+                                            variant="ghost"
+                                            size="sm"
+                                            className={`h-7 px-3 text-xs capitalize ${
+                                                chartGroupBy === group 
+                                                    ? 'bg-background border hover:bg-background text-foreground' 
+                                                    : 'text-muted-foreground'
+                                            }`}
+                                            onClick={() => setChartGroupBy(group)}
+                                        >
+                                            {group}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm text-muted-foreground">Loading chart...</p>
+                            </div>
+                        ) : chartData.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                No data available for chart
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {/* Filter chips */}
+                                {chartColors.keys.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 pb-3">
+                                        {chartColors.keys.map((key) => {
+                                            const isHidden = hiddenChartItems.has(key);
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => toggleChartItem(key)}
+                                                    onMouseEnter={() => setHoveredChartItem(key)}
+                                                    onMouseLeave={() => setHoveredChartItem(null)}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-md ${
+                                                        isHidden 
+                                                            ? 'bg-muted text-muted-foreground opacity-50 hover:opacity-75' 
+                                                            : 'text-white shadow-sm hover:shadow-md'
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: isHidden ? undefined : chartColors.colorMap[key]
+                                                    }}
+                                                >
+                                                    <div 
+                                                        className="w-2 h-2 rounded-full"
+                                                        style={{ backgroundColor: chartColors.colorMap[key] }}
+                                                    />
+                                                    <span>{key}</span>
+                                                    {!isHidden && <X className="h-3 w-3" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                <div className="w-full h-96">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={chartData}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                        <XAxis 
+                                            dataKey="periodLabel" 
+                                            className="text-xs"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={80}
+                                            tick={{ fill: 'currentColor' }}
+                                        />
+                                        <YAxis 
+                                            className="text-xs"
+                                            tick={{ fill: 'currentColor' }}
+                                            tickFormatter={(value) => `$${value.toLocaleString()}`}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{
+                                                backgroundColor: 'hsl(var(--popover))',
+                                                border: '1px solid hsl(var(--border))',
+                                                borderRadius: '0.5rem',
+                                                color: 'hsl(var(--popover-foreground))'
+                                            }}
+                                            formatter={(value: any) => [`$${value.toFixed(2)}`, '']}
+                                            labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                                        />
+                                        {visibleChartKeys.map((key) => {
+                                            const isHovered = hoveredChartItem === key;
+                                            const isDimmed = hoveredChartItem !== null && hoveredChartItem !== key;
+                                            return (
+                                                <Bar 
+                                                    key={key}
+                                                    dataKey={key}
+                                                    stackId="a"
+                                                    fill={chartColors.colorMap[key]}
+                                                    name={key}
+                                                    opacity={isDimmed ? 0.3 : 1}
+                                                    stroke={isHovered ? '#ffffff' : 'none'}
+                                                    strokeWidth={isHovered ? 2 : 0}
+                                                />
+                                            );
+                                        })}
+                                    </BarChart>
+                                </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
