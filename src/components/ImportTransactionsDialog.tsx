@@ -230,7 +230,7 @@ export default function ImportTransactionsDialog({ onImport }: ImportTransaction
             <Label htmlFor="accountName">Account Name</Label>
             <Input
               id="accountName"
-              placeholder="e.g., My Checking Account"
+              placeholder="e.g. My Checking Account"
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
             />
@@ -239,7 +239,7 @@ export default function ImportTransactionsDialog({ onImport }: ImportTransaction
             <Label htmlFor="institutionName">Institution Name</Label>
             <Input
               id="institutionName"
-              placeholder="e.g., Bank of America"
+              placeholder="e.g. RBC Royal Bank"
               value={institutionName}
               onChange={(e) => setInstitutionName(e.target.value)}
             />
@@ -252,6 +252,7 @@ export default function ImportTransactionsDialog({ onImport }: ImportTransaction
               accept=".csv,.xlsx,.xls"
               ref={fileInputRef}
               onChange={handleFileChange}
+              className="cursor-pointer file:cursor-pointer file:mr-4"
             />
             {file && (
               <p className="text-xs text-muted-foreground">

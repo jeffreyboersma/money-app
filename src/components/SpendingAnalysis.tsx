@@ -974,7 +974,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 <p className="text-sm text-muted-foreground">Loading transactions...</p>
                             </div>
-                        ) : transactions.length === 0 ? (
+                        ) : sortedTransactions.length === 0 ? (
                             <div className="text-center py-12 text-muted-foreground">
                                 No transactions found for the selected accounts in this period.
                             </div>
