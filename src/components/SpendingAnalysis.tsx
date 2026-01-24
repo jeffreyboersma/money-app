@@ -597,11 +597,11 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                 <td className="p-4 align-middle text-muted-foreground">
                                                     <div className="flex items-center gap-3">
                                                         {tx.isImported ? (
-                                                            <div className="h-6 w-6 min-w-[2rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                                            <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                                                                 <Wallet className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
                                                             </div>
                                                         ) : account?.institution_logo ? (
-                                                            <div className="h-6 w-6 min-w-[2rem] flex items-center justify-center">
+                                                            <div className="h-6 w-6 min-w-[1.5rem] flex items-center justify-center">
                                                                 <img
                                                                     src={`data:image/png;base64,${account.institution_logo}`}
                                                                     alt={account.institution_name}
@@ -609,7 +609,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <div className="h-6 w-6 min-w-[2rem] rounded-full bg-secondary flex items-center justify-center">
+                                                            <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-secondary flex items-center justify-center">
                                                                 <Building2 className="h-4 w-4 text-muted-foreground" />
                                                             </div>
                                                         )}
