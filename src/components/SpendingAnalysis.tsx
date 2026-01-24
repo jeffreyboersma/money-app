@@ -816,52 +816,6 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {/* Filter chips */}
-                                {chartColors.keys.length > 0 && (
-                                    <div className="flex flex-wrap items-center gap-2 pb-3">
-                                        {chartColors.keys.length > 1 && (
-                                            <>
-                                                <button
-                                                    onClick={() => setHiddenChartItems(new Set())}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 border border-primary"
-                                                >
-                                                    Select All
-                                                </button>
-                                                <button
-                                                    onClick={() => setHiddenChartItems(new Set(chartColors.keys))}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
-                                                >
-                                                    Remove All
-                                                </button>
-                                            </>
-                                        )}
-                                        {chartColors.keys.map((key) => {
-                                            const isHidden = hiddenChartItems.has(key);
-                                            return (
-                                                <button
-                                                    key={key}
-                                                    onClick={() => toggleChartItem(key)}
-                                                    onMouseEnter={() => setHoveredChartItem(key)}
-                                                    onMouseLeave={() => setHoveredChartItem(null)}
-                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-md ${isHidden
-                                                            ? 'bg-muted text-muted-foreground opacity-50 hover:opacity-75'
-                                                            : 'text-white shadow-sm hover:shadow-md'
-                                                        }`}
-                                                    style={{
-                                                        backgroundColor: isHidden ? undefined : chartColors.colorMap[key]
-                                                    }}
-                                                >
-                                                    <div
-                                                        className="w-2 h-2 rounded-full"
-                                                        style={{ backgroundColor: chartColors.colorMap[key] }}
-                                                    />
-                                                    <span>{key}</span>
-                                                    {!isHidden && <X className="h-3 w-3" />}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                )}
                                 <div className="w-full h-96 relative">
                                     {/* Custom tooltip */}
                                     {hoveredBarSection && (
@@ -922,6 +876,52 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
+                                {/* Filter chips */}
+                                {chartColors.keys.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-2 pb-3">
+                                        {chartColors.keys.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setHiddenChartItems(new Set())}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 border border-primary"
+                                                >
+                                                    Select All
+                                                </button>
+                                                <button
+                                                    onClick={() => setHiddenChartItems(new Set(chartColors.keys))}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                                                >
+                                                    Remove All
+                                                </button>
+                                            </>
+                                        )}
+                                        {chartColors.keys.map((key) => {
+                                            const isHidden = hiddenChartItems.has(key);
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => toggleChartItem(key)}
+                                                    onMouseEnter={() => setHoveredChartItem(key)}
+                                                    onMouseLeave={() => setHoveredChartItem(null)}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-md ${isHidden
+                                                            ? 'bg-muted text-muted-foreground opacity-50 hover:opacity-75'
+                                                            : 'text-white shadow-sm hover:shadow-md'
+                                                        }`}
+                                                    style={{
+                                                        backgroundColor: isHidden ? undefined : chartColors.colorMap[key]
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="w-2 h-2 rounded-full"
+                                                        style={{ backgroundColor: chartColors.colorMap[key] }}
+                                                    />
+                                                    <span>{key}</span>
+                                                    {!isHidden && <X className="h-3 w-3" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </CardContent>
