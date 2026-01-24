@@ -254,6 +254,17 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
     const sortedTransactions = useMemo(() => {
         return [...transactions].sort((a: any, b: any) => {
+            if (sortConfig.key === 'account') {
+                const accountA = accounts.find(acc => acc.account_id === a.account_id);
+                const accountB = accounts.find(acc => acc.account_id === b.account_id);
+                const nameA = accountA ? (accountA.institution_name + accountA.name).toLowerCase() : '';
+                const nameB = accountB ? (accountB.institution_name + accountB.name).toLowerCase() : '';
+                
+                if (nameA < nameB) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (nameA > nameB) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            }
+
             if (a[sortConfig.key] < b[sortConfig.key]) {
                 return sortConfig.direction === 'asc' ? -1 : 1;
             }
@@ -262,7 +273,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             }
             return 0;
         });
-    }, [transactions, sortConfig]);
+    }, [transactions, sortConfig, accounts]);
 
     const handleSort = (key: string) => {
         setSortConfig(current => ({
@@ -458,8 +469,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('date')}>
                                             <div className="flex items-center gap-1">Date <SortIcon column="date" /></div>
                                         </th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
-                                            Account
+                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('account')}>
+                                            <div className="flex items-center gap-1">Account <SortIcon column="account" /></div>
                                         </th>
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('name')}>
                                             <div className="flex items-center gap-1">Description <SortIcon column="name" /></div>
