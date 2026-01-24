@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X, Wallet } from 'lucide-react';
+import ImportTransactionsDialog from '@/components/ImportTransactionsDialog';
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
@@ -24,6 +25,15 @@ interface Transaction {
         detailed: string;
         confidence_level?: string;
     } | null;
+    isImported?: boolean;
+}
+
+interface ImportedAccount {
+    account_id: string;
+    name: string;
+    institution_name: string;
+    type: 'imported';
+    isImported: true;
 }
 
 interface SpendingAnalysisProps {
@@ -83,6 +93,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [loading, setLoading] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+    const [importedAccounts, setImportedAccounts] = useState<ImportedAccount[]>([]);
+    const [importedTransactions, setImportedTransactions] = useState<Transaction[]>([]);
 
     // Time range state
     const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
@@ -94,13 +106,14 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [customEnd, setCustomEnd] = useState<string>(() => formatDateToLocalYMD(new Date()));
     const [dateError, setDateError] = useState<string | null>(null);
 
-    // Filter only Depository and Credit accounts for selection
+    // Filter only Depository and Credit accounts for selection, plus imported accounts
     const eligibleAccounts = useMemo(() => {
-        return accounts.filter(acc => 
+        const plaidAccounts = accounts.filter(acc => 
             acc.type === 'depository' || 
             acc.type === 'credit'
         );
-    }, [accounts]);
+        return [...plaidAccounts, ...importedAccounts];
+    }, [accounts, importedAccounts]);
 
     // Initialize with all eligible accounts selected
     useEffect(() => {
@@ -160,6 +173,41 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         return { start, end };
     };
 
+    const handleImport = (accountName: string, institutionName: string, importedTxs: any[]) => {
+        // Generate a unique account ID
+        const accountId = `imported_${Date.now()}`;
+        
+        // Create the imported account
+        const newAccount: ImportedAccount = {
+            account_id: accountId,
+            name: accountName,
+            institution_name: institutionName,
+            type: 'imported',
+            isImported: true,
+        };
+
+        // Transform imported transactions to match Transaction interface
+        const newTransactions: Transaction[] = importedTxs.map((tx, index) => ({
+            transaction_id: `${accountId}_${index}`,
+            account_id: accountId,
+            date: tx.date,
+            name: tx.name,
+            amount: tx.amount,
+            iso_currency_code: tx.currency,
+            category: [tx.category],
+            pending: false,
+            isImported: true,
+            personal_finance_category: null,
+        }));
+
+        // Add to state
+        setImportedAccounts(prev => [...prev, newAccount]);
+        setImportedTransactions(prev => [...prev, ...newTransactions]);
+        
+        // Auto-select the new account
+        setSelectedAccountIds(prev => new Set([...prev, accountId]));
+    };
+
     const toggleAccount = (accountId: string) => {
         setSelectedAccountIds(prev => {
             const next = new Set(prev);
@@ -199,7 +247,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
         setLoading(true);
         try {
-            // Group selected account IDs by access_token
+            // Group selected account IDs by access_token (exclude imported accounts)
             const accountsByToken: Record<string, string[]> = {};
             
             selectedAccountIds.forEach(id => {
@@ -253,8 +301,24 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     }, [selectedAccountIds, selectedRange, customStart, customEnd]); 
 
     const sortedTransactions = useMemo(() => {
-        const filtered = transactions.filter(tx => {
+        // Calculate date range for filtering imported transactions
+        const { start, end } = getDateRange(selectedRange);
+        
+        // Filter imported transactions by selected accounts and date range
+        const selectedImportedTxs = importedTransactions.filter(tx => {
+            if (!selectedAccountIds.has(tx.account_id)) return false;
+            
+            const txDate = new Date(tx.date);
+            return txDate >= start && txDate <= end;
+        });
+
+        // Combine regular and imported transactions
+        const allTransactions = [...transactions, ...selectedImportedTxs];
+
+        const filtered = allTransactions.filter(tx => {
             const account = accounts.find(a => a.account_id === tx.account_id);
+            const importedAccount = importedAccounts.find(a => a.account_id === tx.account_id);
+            
             // Filter out money in (negative amounts) for depository accounts (checking/savings)
             if (account && account.type === 'depository' && tx.amount < 0) {
                 return false;
@@ -264,8 +328,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
         return [...filtered].sort((a: any, b: any) => {
             if (sortConfig.key === 'account') {
-                const accountA = accounts.find(acc => acc.account_id === a.account_id);
-                const accountB = accounts.find(acc => acc.account_id === b.account_id);
+                const accountA = accounts.find(acc => acc.account_id === a.account_id) || importedAccounts.find(acc => acc.account_id === a.account_id);
+                const accountB = accounts.find(acc => acc.account_id === b.account_id) || importedAccounts.find(acc => acc.account_id === b.account_id);
                 const nameA = accountA ? (accountA.institution_name + accountA.name).toLowerCase() : '';
                 const nameB = accountB ? (accountB.institution_name + accountB.name).toLowerCase() : '';
                 
@@ -282,7 +346,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             }
             return 0;
         });
-    }, [transactions, sortConfig, accounts]);
+    }, [transactions, importedTransactions, selectedAccountIds, selectedRange, customStart, customEnd, sortConfig, accounts, importedAccounts]);
 
     const handleSort = (key: string) => {
         setSortConfig(current => ({
@@ -355,7 +419,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                         </div>
                     )}
                     
-                    <div className="flex justify-end w-full">
+                    <div className="flex justify-end w-full gap-2">
+                        <ImportTransactionsDialog onImport={handleImport} />
                         <div className="relative">
                             <Button 
                                 variant="outline" 
@@ -395,9 +460,26 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                 `}>
                                                     {selectedAccountIds.has(account.account_id) && <Check className="h-3 w-3" />}
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium">{account.name}</span>
-                                                    <span className="text-xs text-muted-foreground">{account.institution_name} • {account.mask}</span>
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    {account.isImported ? (
+                                                        <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                                                            <Wallet className="h-3 w-3 text-blue-700 dark:text-blue-300" />
+                                                        </div>
+                                                    ) : null}
+                                                    <div className="flex flex-col overflow-hidden">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-sm font-medium">{account.name}</span>
+                                                            {account.isImported && (
+                                                                <span className="text-[9px] px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
+                                                                    Imported
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-xs text-muted-foreground truncate">
+                                                            {account.institution_name}
+                                                            {!account.isImported && account.mask && ` • ${account.mask}`}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -431,14 +513,25 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                         </div>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pt-5">
                             <div className="space-y-1 overflow-hidden">
-                                <CardTitle className="text-sm font-medium truncate pr-4">
-                                    {account.name}
-                                </CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <CardTitle className="text-sm font-medium truncate pr-4">
+                                        {account.name}
+                                    </CardTitle>
+                                    {account.isImported && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
+                                            Imported
+                                        </span>
+                                    )}
+                                </div>
                                 <p className="text-xs text-muted-foreground truncate">
                                     {account.institution_name}
                                 </p>
                             </div>
-                            {account.institution_logo ? (
+                            {account.isImported ? (
+                                <div className="h-8 w-8 min-w-[2rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                    <Wallet className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                                </div>
+                            ) : account.institution_logo ? (
                                 <div className="h-8 w-8 min-w-[2rem] flex items-center justify-center">
                                     <img
                                         src={`data:image/png;base64,${account.institution_logo}`}
@@ -495,12 +588,19 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                 <tbody className="[&_tr:last-child]:border-0">
                                     {sortedTransactions.map((tx) => {
                                         const account = accounts.find(a => a.account_id === tx.account_id);
+                                        const importedAccount = importedAccounts.find(a => a.account_id === tx.account_id);
+                                        const displayAccount = account || importedAccount;
+                                        
                                         return (
                                             <tr key={tx.transaction_id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                                 <td className="p-4 align-middle">{formatDate(tx.date)}</td>
                                                 <td className="p-4 align-middle text-muted-foreground">
                                                     <div className="flex items-center gap-3">
-                                                        {account?.institution_logo ? (
+                                                        {tx.isImported ? (
+                                                            <div className="h-6 w-6 min-w-[2rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                                                <Wallet className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
+                                                            </div>
+                                                        ) : account?.institution_logo ? (
                                                             <div className="h-6 w-6 min-w-[2rem] flex items-center justify-center">
                                                                 <img
                                                                     src={`data:image/png;base64,${account.institution_logo}`}
@@ -514,8 +614,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                             </div>
                                                         )}
                                                         <div className="flex flex-col">
-                                                            <span className="text-sm font-medium text-foreground">{account ? account.name : 'Unknown Account'}</span>
-                                                            <span className="text-xs">{account?.institution_name}</span>
+                                                            <span className="text-sm font-medium text-foreground">{displayAccount ? displayAccount.name : 'Unknown Account'}</span>
+                                                            <span className="text-xs">{displayAccount?.institution_name}</span>
                                                         </div>
                                                     </div>
                                                 </td>
