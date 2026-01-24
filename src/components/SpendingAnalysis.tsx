@@ -684,9 +684,27 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {eligibleAccounts.filter(acc => selectedAccountIds.has(acc.account_id)).map(account => (
-                    <Card
+            <div className="border rounded-lg p-4">
+                {selectedAccountIds.size === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                        <Filter className="h-12 w-12 text-muted-foreground/50" />
+                        <div className="text-center space-y-2">
+                            <p className="text-sm font-medium text-foreground">No accounts selected</p>
+                            <p className="text-sm text-muted-foreground">Select accounts to view and analyze your transactions</p>
+                        </div>
+                        <Button
+                            variant="default"
+                            onClick={() => setIsFilterOpen(true)}
+                            className="flex items-center gap-2"
+                        >
+                            <Filter className="h-4 w-4" />
+                            Select Accounts
+                        </Button>
+                    </div>
+                ) : (
+                    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                        {eligibleAccounts.filter(acc => selectedAccountIds.has(acc.account_id)).map(account => (
+                        <Card
                         key={account.account_id}
                         className="h-full cursor-pointer hover:border-accent hover:bg-secondary-foreground/15 transition-colors group relative"
                         onClick={() => onAccountClick?.(account.account_id)}
@@ -739,7 +757,9 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             )}
                         </CardHeader>
                     </Card>
-                ))}
+                    ))}
+                    </div>
+                )}
             </div>
 
             {/* Spending Chart Section */}
@@ -911,33 +931,18 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                 </Card>
             )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Transactions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Loading transactions...</p>
-                        </div>
-                    ) : selectedAccountIds.size === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                            <Filter className="h-12 w-12 text-muted-foreground/50" />
-                            <div className="text-center space-y-2">
-                                <p className="text-sm font-medium text-foreground">No accounts selected</p>
-                                <p className="text-sm text-muted-foreground">Select accounts to view and analyze your transactions</p>
+            {selectedAccountIds.size > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Transactions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm text-muted-foreground">Loading transactions...</p>
                             </div>
-                            <Button
-                                variant="default"
-                                onClick={() => setIsFilterOpen(true)}
-                                className="flex items-center gap-2"
-                            >
-                                <Filter className="h-4 w-4" />
-                                Select Accounts
-                            </Button>
-                        </div>
-                    ) : transactions.length === 0 ? (
+                        ) : transactions.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             No transactions found for the selected accounts in this period.
                         </div>
@@ -1013,6 +1018,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     )}
                 </CardContent>
             </Card>
+            )}
         </div>
     );
 }
