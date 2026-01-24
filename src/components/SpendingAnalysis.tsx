@@ -479,7 +479,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     const weekStart = new Date(period);
                     const weekEnd = new Date(weekStart);
                     weekEnd.setDate(weekStart.getDate() + 6);
-                    dataPoint.periodLabel = `${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+                    dataPoint.periodLabel = `Week of ${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
                 } else { // month
                     const [year, month] = period.split('-');
                     dataPoint.periodLabel = new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
@@ -837,21 +837,19 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chartData}
-                                            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                                            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                                             onMouseLeave={() => setHoveredBarSection(null)}
                                         >
                                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                             <XAxis
                                                 dataKey="periodLabel"
-                                                className="text-xs"
                                                 angle={-45}
                                                 textAnchor="end"
-                                                height={80}
-                                                tick={{ fill: 'currentColor' }}
+                                                height={60}
+                                                tick={{ fill: resolvedTheme === 'dark' ? '#71717a' : '#a1a1aa', fontSize: 12, dy: 5 }}
                                             />
                                             <YAxis
-                                                className="text-xs"
-                                                tick={{ fill: 'currentColor' }}
+                                                tick={{ fill: resolvedTheme === 'dark' ? '#71717a' : '#a1a1aa', fontSize: 12 }}
                                                 tickFormatter={(value) => `$${value.toLocaleString()}`}
                                             />
                                             {visibleChartKeys.map((key) => {
