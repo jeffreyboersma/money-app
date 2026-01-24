@@ -45,30 +45,30 @@ interface SpendingAnalysisProps {
 }
 
 const getDisplayCategory = (tx: Transaction): string | null => {
-  if (!tx.personal_finance_category) return null;
-  
-  const { primary, detailed } = tx.personal_finance_category;
-  
-  // Custom mappings requested by user
-  if (detailed.includes('GROCERIES')) return 'Groceries';
-  if (detailed.includes('RESTAURANT')) return 'Restaurant';
-  if (detailed.includes('FAST_FOOD')) return 'Fast Food';
-  if (detailed.includes('COFFEE')) return 'Coffee';
-  if (detailed.includes('BEER_WINE_AND_LIQUOR')) return 'Alcohol';
-  if (detailed.includes('TRANSPORTATION_GAS')) return 'Gas';
-  if (detailed.includes('TRANSPORTATION_PARKING')) return 'Parking';
-  if (detailed.includes('TRANSPORTATION_PUBLIC_TRANSIT')) return 'Public Transit';
-  if (detailed.includes('TRANSPORTATION_TOLLS')) return 'Tolls';
-  if (detailed.includes('INTERNET_AND_CABLE')) return 'Internet & Cable';
-  if (detailed.includes('GAS_AND_ELECTRICITY')) return 'Gas & Electricity';
-  if (detailed.includes('RENT_AND_UTILITIES_WATER')) return 'Water';
-  if (detailed.includes('RENT_AND_UTILITIES_TELEPHONE')) return 'Phone';
-  if (detailed.includes('HOME_IMPROVEMENT_HARDWARE')) return 'Hardware';
-  
-  return primary
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+    if (!tx.personal_finance_category) return null;
+
+    const { primary, detailed } = tx.personal_finance_category;
+
+    // Custom mappings requested by user
+    if (detailed.includes('GROCERIES')) return 'Groceries';
+    if (detailed.includes('RESTAURANT')) return 'Restaurant';
+    if (detailed.includes('FAST_FOOD')) return 'Fast Food';
+    if (detailed.includes('COFFEE')) return 'Coffee';
+    if (detailed.includes('BEER_WINE_AND_LIQUOR')) return 'Alcohol';
+    if (detailed.includes('TRANSPORTATION_GAS')) return 'Gas';
+    if (detailed.includes('TRANSPORTATION_PARKING')) return 'Parking';
+    if (detailed.includes('TRANSPORTATION_PUBLIC_TRANSIT')) return 'Public Transit';
+    if (detailed.includes('TRANSPORTATION_TOLLS')) return 'Tolls';
+    if (detailed.includes('INTERNET_AND_CABLE')) return 'Internet & Cable';
+    if (detailed.includes('GAS_AND_ELECTRICITY')) return 'Gas & Electricity';
+    if (detailed.includes('RENT_AND_UTILITIES_WATER')) return 'Water';
+    if (detailed.includes('RENT_AND_UTILITIES_TELEPHONE')) return 'Phone';
+    if (detailed.includes('HOME_IMPROVEMENT_HARDWARE')) return 'Hardware';
+
+    return primary
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
 };
 
 const formatCurrency = (amount: number) => {
@@ -92,9 +92,9 @@ const formatDate = (dateString: string) => {
 // Custom Bar shape with hover handling
 const CustomBar = (props: any) => {
     const { fill, x, y, width, height, payload, dataKey, onHover, onLeave, isHovered, isDimmed } = props;
-    
+
     if (!width || !height || height < 0) return null;
-    
+
     return (
         <g>
             <rect
@@ -152,8 +152,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
     // Filter only Depository and Credit accounts for selection, plus imported accounts
     const eligibleAccounts = useMemo(() => {
-        const plaidAccounts = accounts.filter(acc => 
-            acc.type === 'depository' || 
+        const plaidAccounts = accounts.filter(acc =>
+            acc.type === 'depository' ||
             acc.type === 'credit'
         );
         return [...plaidAccounts, ...importedAccounts];
@@ -192,7 +192,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             const [eY, eM, eD] = customEnd.split('-').map(Number);
             end.setFullYear(eY, eM - 1, eD);
             end.setHours(23, 59, 59, 999);
-            
+
             return { start, end };
         }
 
@@ -231,7 +231,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const handleImport = (accountName: string, institutionName: string, importedTxs: any[]) => {
         // Generate a unique account ID
         const accountId = `imported_${Date.now()}`;
-        
+
         // Create the imported account
         const newAccount: ImportedAccount = {
             account_id: accountId,
@@ -258,7 +258,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         // Add to state
         setImportedAccounts(prev => [...prev, newAccount]);
         setImportedTransactions(prev => [...prev, ...newTransactions]);
-        
+
         // Auto-select the new account
         setSelectedAccountIds(prev => new Set([...prev, accountId]));
     };
@@ -304,7 +304,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         try {
             // Group selected account IDs by access_token (exclude imported accounts)
             const accountsByToken: Record<string, string[]> = {};
-            
+
             selectedAccountIds.forEach(id => {
                 const account = accounts.find(a => a.account_id === id);
                 if (account && account.access_token) {
@@ -320,7 +320,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             const endDate = end.toISOString().split('T')[0];
             const startDate = start.toISOString().split('T')[0];
 
-            const promises = Object.entries(accountsByToken).map(([token, ids]) => 
+            const promises = Object.entries(accountsByToken).map(([token, ids]) =>
                 fetch('/api/get_transactions', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -334,7 +334,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             );
 
             const results = await Promise.all(promises);
-            
+
             let combined: Transaction[] = [];
             results.forEach(res => {
                 if (res.transactions) {
@@ -353,16 +353,16 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
     useEffect(() => {
         fetchTransactions();
-    }, [selectedAccountIds, selectedRange, customStart, customEnd]); 
+    }, [selectedAccountIds, selectedRange, customStart, customEnd]);
 
     const sortedTransactions = useMemo(() => {
         // Calculate date range for filtering imported transactions
         const { start, end } = getDateRange(selectedRange);
-        
+
         // Filter imported transactions by selected accounts and date range
         const selectedImportedTxs = importedTransactions.filter(tx => {
             if (!selectedAccountIds.has(tx.account_id)) return false;
-            
+
             const txDate = new Date(tx.date);
             return txDate >= start && txDate <= end;
         });
@@ -373,7 +373,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         const filtered = allTransactions.filter(tx => {
             const account = accounts.find(a => a.account_id === tx.account_id);
             const importedAccount = importedAccounts.find(a => a.account_id === tx.account_id);
-            
+
             // Filter out money in (negative amounts) for depository accounts (checking/savings)
             if (account && account.type === 'depository' && tx.amount < 0) {
                 return false;
@@ -387,7 +387,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                 const accountB = accounts.find(acc => acc.account_id === b.account_id) || importedAccounts.find(acc => acc.account_id === b.account_id);
                 const nameA = accountA ? (accountA.institution_name + accountA.name).toLowerCase() : '';
                 const nameB = accountB ? (accountB.institution_name + accountB.name).toLowerCase() : '';
-                
+
                 if (nameA < nameB) return sortConfig.direction === 'asc' ? -1 : 1;
                 if (nameA > nameB) return sortConfig.direction === 'asc' ? 1 : -1;
                 return 0;
@@ -412,7 +412,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
     const SortIcon = ({ column }: { column: string }) => {
         if (sortConfig.key !== column) return <ArrowDown className="h-3 w-3 opacity-0 group-hover:opacity-50" />;
-        return sortConfig.direction === 'asc' 
+        return sortConfig.direction === 'asc'
             ? <ArrowUp className="h-3 w-3" />
             : <ArrowDown className="h-3 w-3" />;
     };
@@ -423,7 +423,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
         // Group transactions by time period
         const groupedByPeriod: Record<string, Transaction[]> = {};
-        
+
         sortedTransactions.forEach(tx => {
             const date = new Date(tx.date);
             let periodKey: string;
@@ -452,12 +452,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             if (chartGroupBy === 'category') {
                 key = getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized');
             } else if (chartGroupBy === 'account') {
-                const account = accounts.find(a => a.account_id === tx.account_id) || 
-                               importedAccounts.find(a => a.account_id === tx.account_id);
+                const account = accounts.find(a => a.account_id === tx.account_id) ||
+                    importedAccounts.find(a => a.account_id === tx.account_id);
                 key = account ? `${account.institution_name} - ${account.name}` : 'Unknown';
             } else { // institution
-                const account = accounts.find(a => a.account_id === tx.account_id) || 
-                               importedAccounts.find(a => a.account_id === tx.account_id);
+                const account = accounts.find(a => a.account_id === tx.account_id) ||
+                    importedAccounts.find(a => a.account_id === tx.account_id);
                 key = account ? account.institution_name : 'Unknown';
             }
             groupKeys.add(key);
@@ -468,7 +468,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([period, txs]) => {
                 const dataPoint: any = { period };
-                
+
                 // Format period label
                 if (chartTimePeriod === 'day') {
                     dataPoint.periodLabel = new Date(period).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -489,12 +489,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     if (chartGroupBy === 'category') {
                         key = getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized');
                     } else if (chartGroupBy === 'account') {
-                        const account = accounts.find(a => a.account_id === tx.account_id) || 
-                                       importedAccounts.find(a => a.account_id === tx.account_id);
+                        const account = accounts.find(a => a.account_id === tx.account_id) ||
+                            importedAccounts.find(a => a.account_id === tx.account_id);
                         key = account ? `${account.institution_name} - ${account.name}` : 'Unknown';
                     } else { // institution
-                        const account = accounts.find(a => a.account_id === tx.account_id) || 
-                                       importedAccounts.find(a => a.account_id === tx.account_id);
+                        const account = accounts.find(a => a.account_id === tx.account_id) ||
+                            importedAccounts.find(a => a.account_id === tx.account_id);
                         key = account ? account.institution_name : 'Unknown';
                     }
 
@@ -525,12 +525,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
             '#06b6d4', '#f43f5e', '#22c55e', '#eab308', '#a855f7'
         ];
-        
+
         const colorMap: Record<string, string> = {};
         keys.forEach((key, i) => {
             colorMap[key] = colors[i % colors.length];
         });
-        
+
         return { keys, colorMap };
     }, [chartData, resolvedTheme]);
 
@@ -564,7 +564,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                         Showing transactions for {selectedAccountIds.size} account{selectedAccountIds.size !== 1 && 's'}
                     </p>
                 </div>
-                
+
                 <div className="relative flex flex-col items-end gap-2">
                     <div className="flex flex-wrap items-center bg-card p-1 rounded-lg border gap-0.5">
                         {(['1D', '1W', '30D', '3M', '6M', '1Y', '2Y', 'YTD', 'MAX', 'CUSTOM'] as const).map((r) => (
@@ -582,15 +582,15 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
                     {selectedRange === 'CUSTOM' && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={customStart}
                                 onChange={(e) => setCustomStart(e.target.value)}
                                 className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
                             />
                             <span className="text-muted-foreground text-xs">to</span>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={customEnd}
                                 onChange={(e) => setCustomEnd(e.target.value)}
                                 className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
@@ -611,12 +611,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             </Button>
                         </div>
                     )}
-                    
+
                     <div className="flex justify-end w-full gap-2">
                         <ImportTransactionsDialog onImport={handleImport} />
                         <div className="relative" ref={filterDropdownRef}>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                                 className="flex items-center gap-2"
                             >
@@ -628,7 +628,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             {isFilterOpen && (
                                 <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto z-50 rounded-md border bg-popover p-4 shadow-md text-popover-foreground">
                                     <div className="space-y-2">
-                                        <div 
+                                        <div
                                             className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
                                             onClick={toggleAll}
                                         >
@@ -642,7 +642,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         </div>
                                         <div className="h-px bg-border my-2" />
                                         {eligibleAccounts.map(account => (
-                                            <div 
+                                            <div
                                                 key={account.account_id}
                                                 className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
                                                 onClick={() => toggleAccount(account.account_id)}
@@ -704,60 +704,60 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                 ) : (
                     <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
                         {eligibleAccounts.filter(acc => selectedAccountIds.has(acc.account_id)).map(account => (
-                        <Card
-                        key={account.account_id}
-                        className="h-full cursor-pointer hover:border-accent hover:bg-secondary-foreground/15 transition-colors group relative"
-                        onClick={() => onAccountClick?.(account.account_id)}
-                    >
-                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-4 w-4 hover:bg-destructive/10 hover:text-destructive"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleAccount(account.account_id);
-                                }}
+                            <Card
+                                key={account.account_id}
+                                className="h-full cursor-pointer hover:border-accent hover:bg-secondary-foreground/15 transition-colors group relative"
+                                onClick={() => onAccountClick?.(account.account_id)}
                             >
-                                <X className="h-3 w-3" />
-                            </Button>
-                        </div>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pt-5">
-                            <div className="space-y-1 overflow-hidden">
-                                <div className="flex items-center gap-2">
-                                    <CardTitle className="text-sm font-medium truncate pr-4">
-                                        {account.name}
-                                    </CardTitle>
-                                    {account.isImported && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
-                                            Imported
-                                        </span>
+                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleAccount(account.account_id);
+                                        }}
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pt-5">
+                                    <div className="space-y-1 overflow-hidden">
+                                        <div className="flex items-center gap-2">
+                                            <CardTitle className="text-sm font-medium truncate pr-4">
+                                                {account.name}
+                                            </CardTitle>
+                                            {account.isImported && (
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
+                                                    Imported
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                            {account.institution_name}
+                                        </p>
+                                    </div>
+                                    {account.isImported ? (
+                                        <div className="h-8 w-8 min-w-[2rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                            <Wallet className="h-4 w-4 text-blue-700 dark:text-blue-300" />
+                                        </div>
+                                    ) : account.institution_logo ? (
+                                        <div className="h-8 w-8 min-w-[2rem] flex items-center justify-center">
+                                            <img
+                                                src={`data:image/png;base64,${account.institution_logo}`}
+                                                alt={account.institution_name}
+                                                className="max-w-full max-h-full object-contain"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="h-8 w-8 min-w-[2rem] rounded-full bg-secondary flex items-center justify-center">
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                                        </div>
                                     )}
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate">
-                                    {account.institution_name}
-                                </p>
-                            </div>
-                            {account.isImported ? (
-                                <div className="h-8 w-8 min-w-[2rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                    <Wallet className="h-4 w-4 text-blue-700 dark:text-blue-300" />
-                                </div>
-                            ) : account.institution_logo ? (
-                                <div className="h-8 w-8 min-w-[2rem] flex items-center justify-center">
-                                    <img
-                                        src={`data:image/png;base64,${account.institution_logo}`}
-                                        alt={account.institution_name}
-                                        className="max-w-full max-h-full object-contain"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="h-8 w-8 min-w-[2rem] rounded-full bg-secondary flex items-center justify-center">
-                                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                            )}
-                        </CardHeader>
-                    </Card>
-                    ))}
+                                </CardHeader>
+                            </Card>
+                        ))}
                     </div>
                 )}
             </div>
@@ -775,11 +775,10 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                             key={period}
                                             variant="ghost"
                                             size="sm"
-                                            className={`h-7 px-3 text-xs capitalize ${
-                                                chartTimePeriod === period 
-                                                    ? 'bg-background border hover:bg-background text-foreground' 
+                                            className={`h-7 px-3 text-xs capitalize ${chartTimePeriod === period
+                                                    ? 'bg-background border hover:bg-background text-foreground'
                                                     : 'text-muted-foreground'
-                                            }`}
+                                                }`}
                                             onClick={() => setChartTimePeriod(period)}
                                         >
                                             {period}
@@ -792,11 +791,10 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                             key={group}
                                             variant="ghost"
                                             size="sm"
-                                            className={`h-7 px-3 text-xs capitalize ${
-                                                chartGroupBy === group 
-                                                    ? 'bg-background border hover:bg-background text-foreground' 
+                                            className={`h-7 px-3 text-xs capitalize ${chartGroupBy === group
+                                                    ? 'bg-background border hover:bg-background text-foreground'
                                                     : 'text-muted-foreground'
-                                            }`}
+                                                }`}
                                             onClick={() => setChartGroupBy(group)}
                                         >
                                             {group}
@@ -845,16 +843,15 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                     onClick={() => toggleChartItem(key)}
                                                     onMouseEnter={() => setHoveredChartItem(key)}
                                                     onMouseLeave={() => setHoveredChartItem(null)}
-                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-md ${
-                                                        isHidden 
-                                                            ? 'bg-muted text-muted-foreground opacity-50 hover:opacity-75' 
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:shadow-md ${isHidden
+                                                            ? 'bg-muted text-muted-foreground opacity-50 hover:opacity-75'
                                                             : 'text-white shadow-sm hover:shadow-md'
-                                                    }`}
+                                                        }`}
                                                     style={{
                                                         backgroundColor: isHidden ? undefined : chartColors.colorMap[key]
                                                     }}
                                                 >
-                                                    <div 
+                                                    <div
                                                         className="w-2 h-2 rounded-full"
                                                         style={{ backgroundColor: chartColors.colorMap[key] }}
                                                     />
@@ -866,64 +863,64 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                     </div>
                                 )}
                                 <div className="w-full h-96 relative">
-                                {/* Custom tooltip */}
-                                {hoveredBarSection && (
-                                    <div
-                                        className="absolute z-50 px-3 py-2 text-sm bg-popover border border-border rounded-md shadow-lg pointer-events-none"
-                                        style={{
-                                            left: `${hoveredBarSection.x}px`,
-                                            top: `${hoveredBarSection.y - 10}px`,
-                                            transform: 'translate(-50%, -100%)',
-                                        }}
-                                    >
-                                        <div className="font-medium">{hoveredBarSection.category}</div>
-                                        <div className="text-muted-foreground">${hoveredBarSection.value.toFixed(2)}</div>
-                                    </div>
-                                )}
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={chartData}
-                                        margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
-                                        onMouseLeave={() => setHoveredBarSection(null)}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                                        <XAxis 
-                                            dataKey="periodLabel" 
-                                            className="text-xs"
-                                            angle={-45}
-                                            textAnchor="end"
-                                            height={80}
-                                            tick={{ fill: 'currentColor' }}
-                                        />
-                                        <YAxis 
-                                            className="text-xs"
-                                            tick={{ fill: 'currentColor' }}
-                                            tickFormatter={(value) => `$${value.toLocaleString()}`}
-                                        />
-                                        {visibleChartKeys.map((key) => {
-                                            const isHovered = hoveredBarSection?.category === key || hoveredChartItem === key;
-                                            const isDimmed = (hoveredBarSection !== null && hoveredBarSection.category !== key) || 
-                                                           (hoveredChartItem !== null && hoveredChartItem !== key && hoveredBarSection === null);
-                                            return (
-                                                <Bar 
-                                                    key={key}
-                                                    dataKey={key}
-                                                    stackId="a"
-                                                    fill={chartColors.colorMap[key]}
-                                                    name={key}
-                                                    shape={<CustomBar 
-                                                        onHover={(dataKey: string, value: number, x: number, y: number) => {
-                                                            setHoveredBarSection({ category: dataKey, value, x, y });
-                                                        }}
-                                                        onLeave={() => setHoveredBarSection(null)}
-                                                        isHovered={isHovered}
-                                                        isDimmed={isDimmed}
-                                                    />}
-                                                />
-                                            );
-                                        })}
-                                    </BarChart>
-                                </ResponsiveContainer>
+                                    {/* Custom tooltip */}
+                                    {hoveredBarSection && (
+                                        <div
+                                            className="absolute z-50 px-3 py-2 text-sm bg-popover border border-border rounded-md shadow-lg pointer-events-none"
+                                            style={{
+                                                left: `${hoveredBarSection.x}px`,
+                                                top: `${hoveredBarSection.y - 10}px`,
+                                                transform: 'translate(-50%, -100%)',
+                                            }}
+                                        >
+                                            <div className="font-medium">{hoveredBarSection.category}</div>
+                                            <div className="text-muted-foreground">${hoveredBarSection.value.toFixed(2)}</div>
+                                        </div>
+                                    )}
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={chartData}
+                                            margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
+                                            onMouseLeave={() => setHoveredBarSection(null)}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                            <XAxis
+                                                dataKey="periodLabel"
+                                                className="text-xs"
+                                                angle={-45}
+                                                textAnchor="end"
+                                                height={80}
+                                                tick={{ fill: 'currentColor' }}
+                                            />
+                                            <YAxis
+                                                className="text-xs"
+                                                tick={{ fill: 'currentColor' }}
+                                                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                                            />
+                                            {visibleChartKeys.map((key) => {
+                                                const isHovered = hoveredBarSection?.category === key || hoveredChartItem === key;
+                                                const isDimmed = (hoveredBarSection !== null && hoveredBarSection.category !== key) ||
+                                                    (hoveredChartItem !== null && hoveredChartItem !== key && hoveredBarSection === null);
+                                                return (
+                                                    <Bar
+                                                        key={key}
+                                                        dataKey={key}
+                                                        stackId="a"
+                                                        fill={chartColors.colorMap[key]}
+                                                        name={key}
+                                                        shape={<CustomBar
+                                                            onHover={(dataKey: string, value: number, x: number, y: number) => {
+                                                                setHoveredBarSection({ category: dataKey, value, x, y });
+                                                            }}
+                                                            onLeave={() => setHoveredBarSection(null)}
+                                                            isHovered={isHovered}
+                                                            isDimmed={isDimmed}
+                                                        />}
+                                                    />
+                                                );
+                                            })}
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
                         )}
@@ -943,81 +940,81 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                 <p className="text-sm text-muted-foreground">Loading transactions...</p>
                             </div>
                         ) : transactions.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground">
-                            No transactions found for the selected accounts in this period.
-                        </div>
-                    ) : (
-                        <div className="relative w-full overflow-auto">
-                            <table className="w-full caption-bottom text-sm">
-                                <thead className="[&_tr]:border-b">
-                                    <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('date')}>
-                                            <div className="flex items-center gap-1">Date <SortIcon column="date" /></div>
-                                        </th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('account')}>
-                                            <div className="flex items-center gap-1">Account <SortIcon column="account" /></div>
-                                        </th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('name')}>
-                                            <div className="flex items-center gap-1">Name <SortIcon column="name" /></div>
-                                        </th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
-                                            Category
-                                        </th>
-                                        <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('amount')}>
-                                            <div className="flex items-center justify-end gap-1">Amount <SortIcon column="amount" /></div>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="[&_tr:last-child]:border-0">
-                                    {sortedTransactions.map((tx) => {
-                                        const account = accounts.find(a => a.account_id === tx.account_id);
-                                        const importedAccount = importedAccounts.find(a => a.account_id === tx.account_id);
-                                        const displayAccount = account || importedAccount;
-                                        
-                                        return (
-                                            <tr key={tx.transaction_id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                                <td className="p-4 align-middle">{formatDate(tx.date)}</td>
-                                                <td className="p-4 align-middle text-muted-foreground">
-                                                    <div className="flex items-center gap-3">
-                                                        {tx.isImported ? (
-                                                            <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                                                <Wallet className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
+                            <div className="text-center py-12 text-muted-foreground">
+                                No transactions found for the selected accounts in this period.
+                            </div>
+                        ) : (
+                            <div className="relative w-full overflow-auto">
+                                <table className="w-full caption-bottom text-sm">
+                                    <thead className="[&_tr]:border-b">
+                                        <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('date')}>
+                                                <div className="flex items-center gap-1">Date <SortIcon column="date" /></div>
+                                            </th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('account')}>
+                                                <div className="flex items-center gap-1">Account <SortIcon column="account" /></div>
+                                            </th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('name')}>
+                                                <div className="flex items-center gap-1">Name <SortIcon column="name" /></div>
+                                            </th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                                                Category
+                                            </th>
+                                            <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('amount')}>
+                                                <div className="flex items-center justify-end gap-1">Amount <SortIcon column="amount" /></div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="[&_tr:last-child]:border-0">
+                                        {sortedTransactions.map((tx) => {
+                                            const account = accounts.find(a => a.account_id === tx.account_id);
+                                            const importedAccount = importedAccounts.find(a => a.account_id === tx.account_id);
+                                            const displayAccount = account || importedAccount;
+
+                                            return (
+                                                <tr key={tx.transaction_id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                                    <td className="p-4 align-middle">{formatDate(tx.date)}</td>
+                                                    <td className="p-4 align-middle text-muted-foreground">
+                                                        <div className="flex items-center gap-3">
+                                                            {tx.isImported ? (
+                                                                <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                                                                    <Wallet className="h-3.5 w-3.5 text-blue-700 dark:text-blue-300" />
+                                                                </div>
+                                                            ) : account?.institution_logo ? (
+                                                                <div className="h-6 w-6 min-w-[1.5rem] flex items-center justify-center">
+                                                                    <img
+                                                                        src={`data:image/png;base64,${account.institution_logo}`}
+                                                                        alt={account.institution_name}
+                                                                        className="max-w-full max-h-full object-contain"
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-secondary flex items-center justify-center">
+                                                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-medium text-foreground">{displayAccount ? displayAccount.name : 'Unknown Account'}</span>
+                                                                <span className="text-xs">{displayAccount?.institution_name}</span>
                                                             </div>
-                                                        ) : account?.institution_logo ? (
-                                                            <div className="h-6 w-6 min-w-[1.5rem] flex items-center justify-center">
-                                                                <img
-                                                                    src={`data:image/png;base64,${account.institution_logo}`}
-                                                                    alt={account.institution_name}
-                                                                    className="max-w-full max-h-full object-contain"
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="h-6 w-6 min-w-[1.5rem] rounded-full bg-secondary flex items-center justify-center">
-                                                                <Building2 className="h-4 w-4 text-muted-foreground" />
-                                                            </div>
-                                                        )}
-                                                        <div className="flex flex-col">
-                                                            <span className="text-sm font-medium text-foreground">{displayAccount ? displayAccount.name : 'Unknown Account'}</span>
-                                                            <span className="text-xs">{displayAccount?.institution_name}</span>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 align-middle font-medium">{tx.name}</td>
-                                                <td className="p-4 align-middle text-muted-foreground">
-                                                    {getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized')}
-                                                </td>
-                                                <td className={`p-4 align-middle text-right font-medium ${tx.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
-                                                    {formatCurrency(tx.amount)}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                                    </td>
+                                                    <td className="p-4 align-middle font-medium">{tx.name}</td>
+                                                    <td className="p-4 align-middle text-muted-foreground">
+                                                        {getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized')}
+                                                    </td>
+                                                    <td className={`p-4 align-middle text-right font-medium ${tx.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
+                                                        {formatCurrency(tx.amount)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
