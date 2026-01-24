@@ -88,6 +88,32 @@ const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
 };
 
+// Custom Bar shape with hover handling
+const CustomBar = (props: any) => {
+    const { fill, x, y, width, height, payload, dataKey, onHover, onLeave, isHovered, isDimmed } = props;
+    
+    if (!width || !height || height < 0) return null;
+    
+    return (
+        <g>
+            <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill={fill}
+                opacity={isDimmed ? 0.3 : 1}
+                stroke={isHovered ? '#ffffff' : 'none'}
+                strokeWidth={isHovered ? 2 : 0}
+                onMouseEnter={(e) => onHover(dataKey, payload[dataKey], x + width / 2, y)}
+                onMouseMove={(e) => onHover(dataKey, payload[dataKey], x + width / 2, y)}
+                onMouseLeave={onLeave}
+                style={{ cursor: 'pointer' }}
+            />
+        </g>
+    );
+};
+
 export default function SpendingAnalysis({ accounts, accessTokens, onAccountClick }: SpendingAnalysisProps) {
     const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -102,6 +128,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [chartGroupBy, setChartGroupBy] = useState<'category' | 'account' | 'institution'>('category');
     const [hiddenChartItems, setHiddenChartItems] = useState<Set<string>>(new Set());
     const [hoveredChartItem, setHoveredChartItem] = useState<string | null>(null);
+    const [hoveredBarSection, setHoveredBarSection] = useState<{ category: string; value: number; x: number; y: number } | null>(null);
 
     // Time range state
     const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
@@ -743,7 +770,23 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             <div className="space-y-4">
                                 {/* Filter chips */}
                                 {chartColors.keys.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 pb-3">
+                                    <div className="flex flex-wrap items-center gap-2 pb-3">
+                                        {chartColors.keys.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => setHiddenChartItems(new Set())}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 border border-primary"
+                                                >
+                                                    Select All
+                                                </button>
+                                                <button
+                                                    onClick={() => setHiddenChartItems(new Set(chartColors.keys))}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                                                >
+                                                    Remove All
+                                                </button>
+                                            </>
+                                        )}
                                         {chartColors.keys.map((key) => {
                                             const isHidden = hiddenChartItems.has(key);
                                             return (
@@ -772,11 +815,26 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         })}
                                     </div>
                                 )}
-                                <div className="w-full h-96">
+                                <div className="w-full h-96 relative">
+                                {/* Custom tooltip */}
+                                {hoveredBarSection && (
+                                    <div
+                                        className="absolute z-50 px-3 py-2 text-sm bg-popover border border-border rounded-md shadow-lg pointer-events-none"
+                                        style={{
+                                            left: `${hoveredBarSection.x}px`,
+                                            top: `${hoveredBarSection.y - 10}px`,
+                                            transform: 'translate(-50%, -100%)',
+                                        }}
+                                    >
+                                        <div className="font-medium">{hoveredBarSection.category}</div>
+                                        <div className="text-muted-foreground">${hoveredBarSection.value.toFixed(2)}</div>
+                                    </div>
+                                )}
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
                                         data={chartData}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                        onMouseLeave={() => setHoveredBarSection(null)}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                         <XAxis 
@@ -792,19 +850,10 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                             tick={{ fill: 'currentColor' }}
                                             tickFormatter={(value) => `$${value.toLocaleString()}`}
                                         />
-                                        <Tooltip 
-                                            contentStyle={{
-                                                backgroundColor: 'hsl(var(--popover))',
-                                                border: '1px solid hsl(var(--border))',
-                                                borderRadius: '0.5rem',
-                                                color: 'hsl(var(--popover-foreground))'
-                                            }}
-                                            formatter={(value: any) => [`$${value.toFixed(2)}`, '']}
-                                            labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                                        />
                                         {visibleChartKeys.map((key) => {
-                                            const isHovered = hoveredChartItem === key;
-                                            const isDimmed = hoveredChartItem !== null && hoveredChartItem !== key;
+                                            const isHovered = hoveredBarSection?.category === key || hoveredChartItem === key;
+                                            const isDimmed = (hoveredBarSection !== null && hoveredBarSection.category !== key) || 
+                                                           (hoveredChartItem !== null && hoveredChartItem !== key && hoveredBarSection === null);
                                             return (
                                                 <Bar 
                                                     key={key}
@@ -812,9 +861,14 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                     stackId="a"
                                                     fill={chartColors.colorMap[key]}
                                                     name={key}
-                                                    opacity={isDimmed ? 0.3 : 1}
-                                                    stroke={isHovered ? '#ffffff' : 'none'}
-                                                    strokeWidth={isHovered ? 2 : 0}
+                                                    shape={<CustomBar 
+                                                        onHover={(dataKey: string, value: number, x: number, y: number) => {
+                                                            setHoveredBarSection({ category: dataKey, value, x, y });
+                                                        }}
+                                                        onLeave={() => setHoveredBarSection(null)}
+                                                        isHovered={isHovered}
+                                                        isDimmed={isDimmed}
+                                                    />}
                                                 />
                                             );
                                         })}
