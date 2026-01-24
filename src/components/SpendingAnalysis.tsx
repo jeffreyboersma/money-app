@@ -253,7 +253,16 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     }, [selectedAccountIds, selectedRange, customStart, customEnd]); 
 
     const sortedTransactions = useMemo(() => {
-        return [...transactions].sort((a: any, b: any) => {
+        const filtered = transactions.filter(tx => {
+            const account = accounts.find(a => a.account_id === tx.account_id);
+            // Filter out money in (negative amounts) for depository accounts (checking/savings)
+            if (account && account.type === 'depository' && tx.amount < 0) {
+                return false;
+            }
+            return true;
+        });
+
+        return [...filtered].sort((a: any, b: any) => {
             if (sortConfig.key === 'account') {
                 const accountA = accounts.find(acc => acc.account_id === a.account_id);
                 const accountB = accounts.find(acc => acc.account_id === b.account_id);
@@ -473,7 +482,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                             <div className="flex items-center gap-1">Account <SortIcon column="account" /></div>
                                         </th>
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('name')}>
-                                            <div className="flex items-center gap-1">Description <SortIcon column="name" /></div>
+                                            <div className="flex items-center gap-1">Name <SortIcon column="name" /></div>
                                         </th>
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                                             Category
