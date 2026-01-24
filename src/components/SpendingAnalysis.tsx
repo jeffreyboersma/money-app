@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X } from 'lucide-react';
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
@@ -24,6 +24,7 @@ interface Transaction {
 interface SpendingAnalysisProps {
     accounts: any[];
     accessTokens: string[];
+    onAccountClick?: (accountId: string) => void;
 }
 
 const formatCurrency = (amount: number) => {
@@ -44,7 +45,7 @@ const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
 };
 
-export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAnalysisProps) {
+export default function SpendingAnalysis({ accounts, accessTokens, onAccountClick }: SpendingAnalysisProps) {
     const [selectedAccountIds, setSelectedAccountIds] = useState<Set<string>>(new Set());
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(false);
@@ -354,6 +355,53 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {eligibleAccounts.filter(acc => selectedAccountIds.has(acc.account_id)).map(account => (
+                    <Card
+                        key={account.account_id}
+                        className="h-full cursor-pointer hover:border-accent hover:bg-secondary-foreground/15 transition-colors group relative"
+                        onClick={() => onAccountClick?.(account.account_id)}
+                    >
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-4 w-4 hover:bg-destructive/10 hover:text-destructive"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleAccount(account.account_id);
+                                }}
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pt-5">
+                            <div className="space-y-1 overflow-hidden">
+                                <CardTitle className="text-sm font-medium truncate pr-4">
+                                    {account.name}
+                                </CardTitle>
+                                <p className="text-xs text-muted-foreground truncate">
+                                    {account.institution_name}
+                                </p>
+                            </div>
+                            {account.institution_logo ? (
+                                <div className="h-8 w-8 min-w-[2rem] flex items-center justify-center">
+                                    <img
+                                        src={`data:image/png;base64,${account.institution_logo}`}
+                                        alt={account.institution_name}
+                                        className="max-w-full max-h-full object-contain"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="h-8 w-8 min-w-[2rem] rounded-full bg-secondary flex items-center justify-center">
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                            )}
+                        </CardHeader>
+                    </Card>
+                ))}
             </div>
 
             <Card>

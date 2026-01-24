@@ -598,7 +598,11 @@ export default function Dashboard() {
                     )}
                 </>
             ) : (
-                <SpendingAnalysis accounts={allAccounts} accessTokens={accessTokens} />
+                <SpendingAnalysis 
+                    accounts={allAccounts} 
+                    accessTokens={accessTokens} 
+                    onAccountClick={setSelectedAccountId}
+                />
             )}
 
             <AccountDetailsModal
