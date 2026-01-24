@@ -19,6 +19,11 @@ interface Transaction {
     merchant_name?: string;
     payment_channel?: string;
     authorized_date?: string;
+    personal_finance_category?: {
+        primary: string;
+        detailed: string;
+        confidence_level?: string;
+    } | null;
 }
 
 interface SpendingAnalysisProps {
@@ -26,6 +31,33 @@ interface SpendingAnalysisProps {
     accessTokens: string[];
     onAccountClick?: (accountId: string) => void;
 }
+
+const getDisplayCategory = (tx: Transaction): string | null => {
+  if (!tx.personal_finance_category) return null;
+  
+  const { primary, detailed } = tx.personal_finance_category;
+  
+  // Custom mappings requested by user
+  if (detailed.includes('GROCERIES')) return 'Groceries';
+  if (detailed.includes('RESTAURANT')) return 'Restaurant';
+  if (detailed.includes('FAST_FOOD')) return 'Fast Food';
+  if (detailed.includes('COFFEE')) return 'Coffee';
+  if (detailed.includes('BEER_WINE_AND_LIQUOR')) return 'Alcohol';
+  if (detailed.includes('TRANSPORTATION_GAS')) return 'Gas';
+  if (detailed.includes('TRANSPORTATION_PARKING')) return 'Parking';
+  if (detailed.includes('TRANSPORTATION_PUBLIC_TRANSIT')) return 'Public Transit';
+  if (detailed.includes('TRANSPORTATION_TOLLS')) return 'Tolls';
+  if (detailed.includes('INTERNET_AND_CABLE')) return 'Internet & Cable';
+  if (detailed.includes('GAS_AND_ELECTRICITY')) return 'Gas & Electricity';
+  if (detailed.includes('RENT_AND_UTILITIES_WATER')) return 'Water';
+  if (detailed.includes('RENT_AND_UTILITIES_TELEPHONE')) return 'Phone';
+  if (detailed.includes('HOME_IMPROVEMENT_HARDWARE')) return 'Hardware';
+  
+  return primary
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 const formatCurrency = (amount: number) => {
     return amount.toLocaleString(undefined, {
@@ -426,14 +458,14 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('date')}>
                                             <div className="flex items-center gap-1">Date <SortIcon column="date" /></div>
                                         </th>
+                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                                            Account
+                                        </th>
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('name')}>
                                             <div className="flex items-center gap-1">Description <SortIcon column="name" /></div>
                                         </th>
                                         <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                                             Category
-                                        </th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
-                                            Account
                                         </th>
                                         <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 cursor-pointer group" onClick={() => handleSort('amount')}>
                                             <div className="flex items-center justify-end gap-1">Amount <SortIcon column="amount" /></div>
@@ -446,12 +478,30 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         return (
                                             <tr key={tx.transaction_id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                                                 <td className="p-4 align-middle">{formatDate(tx.date)}</td>
+                                                <td className="p-4 align-middle text-muted-foreground">
+                                                    <div className="flex items-center gap-3">
+                                                        {account?.institution_logo ? (
+                                                            <div className="h-6 w-6 min-w-[2rem] flex items-center justify-center">
+                                                                <img
+                                                                    src={`data:image/png;base64,${account.institution_logo}`}
+                                                                    alt={account.institution_name}
+                                                                    className="max-w-full max-h-full object-contain"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="h-6 w-6 min-w-[2rem] rounded-full bg-secondary flex items-center justify-center">
+                                                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-medium text-foreground">{account ? account.name : 'Unknown Account'}</span>
+                                                            <span className="text-xs">{account?.institution_name}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td className="p-4 align-middle font-medium">{tx.name}</td>
                                                 <td className="p-4 align-middle text-muted-foreground">
-                                                    {tx.category ? tx.category[0] : 'Uncategorized'}
-                                                </td>
-                                                <td className="p-4 align-middle text-muted-foreground">
-                                                    {account ? account.name : 'Unknown Account'}
+                                                    {getDisplayCategory(tx) || (tx.category ? tx.category[0] : 'Uncategorized')}
                                                 </td>
                                                 <td className={`p-4 align-middle text-right font-medium ${tx.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'}`}>
                                                     {formatCurrency(tx.amount)}
