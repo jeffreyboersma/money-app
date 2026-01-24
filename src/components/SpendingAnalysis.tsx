@@ -139,6 +139,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [hoveredBarSection, setHoveredBarSection] = useState<{ category: string; value: number; x: number; y: number } | null>(null);
     const tooltipRef = useRef<HTMLDivElement>(null);
     const hoveredBarRef = useRef<{ category: string; value: number } | null>(null);
+    const [isTransactionsExpanded, setIsTransactionsExpanded] = useState(false);
 
     // Theme
     const { resolvedTheme } = useTheme();
@@ -838,7 +839,14 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         <BarChart
                                             data={chartData}
                                             margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
-                                            onMouseLeave={() => setHoveredBarSection(null)}
+                                            onMouseLeave={() => {
+                                                const tooltip = tooltipRef.current;
+                                                if (tooltip) {
+                                                    tooltip.style.display = 'none';
+                                                }
+                                                hoveredBarRef.current = null;
+                                                setHoveredBarSection(null);
+                                            }}
                                         >
                                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                             <XAxis
@@ -950,9 +958,16 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
 
             {selectedAccountIds.size > 0 && (
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Transactions</CardTitle>
+                    <CardHeader 
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => setIsTransactionsExpanded(!isTransactionsExpanded)}
+                    >
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-lg">Transactions</CardTitle>
+                            <ChevronDown className={`h-5 w-5 transition-transform duration-200 ${isTransactionsExpanded ? 'transform rotate-180' : ''}`} />
+                        </div>
                     </CardHeader>
+                    {isTransactionsExpanded && (
                     <CardContent>
                         {loading ? (
                             <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -1034,6 +1049,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             </div>
                         )}
                     </CardContent>
+                    )}
                 </Card>
             )}
         </div>
