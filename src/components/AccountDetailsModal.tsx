@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Loader2, RotateCcw, Download } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import {
   AreaChart,
   Area,
@@ -192,6 +193,7 @@ export default function AccountDetailsModal({
   institutionName,
   institutionLogo 
 }: AccountDetailsModalProps) {
+  const { resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AccountData | null>(null);
@@ -619,7 +621,9 @@ export default function AccountDetailsModal({
     return spendingData.reduce((acc, curr) => acc + curr.value, 0);
   }, [spendingData]);
 
-  const COLORS = ['#0ea5e9', '#22c55e', '#eab308', '#f97316', '#ef4444', '#a855f7', '#64748b'];
+  const COLORS = resolvedTheme === 'dark' 
+    ? ['#0284c7', '#16a34a', '#ca8a04', '#ea580c', '#dc2626', '#9333ea', '#475569']
+    : ['#0ea5e9', '#22c55e', '#eab308', '#f97316', '#ef4444', '#a855f7', '#64748b'];
 
   const handleExportCSV = () => {
     if (!data || !data.transactions) return;

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X, Wallet } from 'lucide-react';
 import ImportTransactionsDialog from '@/components/ImportTransactionsDialog';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useTheme } from 'next-themes';
 
 type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
@@ -135,6 +136,9 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [hiddenChartItems, setHiddenChartItems] = useState<Set<string>>(new Set());
     const [hoveredChartItem, setHoveredChartItem] = useState<string | null>(null);
     const [hoveredBarSection, setHoveredBarSection] = useState<{ category: string; value: number; x: number; y: number } | null>(null);
+
+    // Theme
+    const { resolvedTheme } = useTheme();
 
     // Time range state
     const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
@@ -512,7 +516,11 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     // Generate colors for chart bars
     const chartColors = useMemo(() => {
         const keys = chartData.length > 0 ? Object.keys(chartData[0]).filter(k => k !== 'period' && k !== 'periodLabel') : [];
-        const colors = [
+        const colors = resolvedTheme === 'dark' ? [
+            '#2563eb', '#dc2626', '#059669', '#d97706', '#7c3aed',
+            '#db2777', '#0d9488', '#ea580c', '#4f46e5', '#65a30d',
+            '#0891b2', '#e11d48', '#16a34a', '#ca8a04', '#9333ea'
+        ] : [
             '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
             '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
             '#06b6d4', '#f43f5e', '#22c55e', '#eab308', '#a855f7'
@@ -524,7 +532,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         });
         
         return { keys, colorMap };
-    }, [chartData]);
+    }, [chartData, resolvedTheme]);
 
     // Reset hidden items when groupBy changes
     useEffect(() => {
