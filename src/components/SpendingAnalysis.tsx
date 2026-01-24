@@ -106,12 +106,13 @@ const CustomBar = (props: any) => {
                 opacity={isDimmed ? 0.3 : 1}
                 stroke={isHovered ? '#ffffff' : 'none'}
                 strokeWidth={isHovered ? 2 : 0}
+                onMouseMove={(e) => {
+                    onHover(dataKey, payload[dataKey], x + width / 2, y);
+                }}
                 onMouseEnter={(e) => {
-                    e.stopPropagation();
                     onHover(dataKey, payload[dataKey], x + width / 2, y);
                 }}
                 onMouseLeave={(e) => {
-                    e.stopPropagation();
                     onLeave();
                 }}
                 style={{ cursor: 'pointer' }}
@@ -136,6 +137,8 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [hiddenChartItems, setHiddenChartItems] = useState<Set<string>>(new Set());
     const [hoveredChartItem, setHoveredChartItem] = useState<string | null>(null);
     const [hoveredBarSection, setHoveredBarSection] = useState<{ category: string; value: number; x: number; y: number } | null>(null);
+    const tooltipRef = useRef<HTMLDivElement>(null);
+    const hoveredBarRef = useRef<{ category: string; value: number } | null>(null);
 
     // Theme
     const { resolvedTheme } = useTheme();
@@ -818,19 +821,19 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                             <div className="space-y-4">
                                 <div className="w-full h-96 relative">
                                     {/* Custom tooltip */}
-                                    {hoveredBarSection && (
-                                        <div
-                                            className="absolute z-50 px-3 py-2 text-sm bg-popover border border-border rounded-md shadow-lg pointer-events-none"
-                                            style={{
-                                                left: `${hoveredBarSection.x}px`,
-                                                top: `${hoveredBarSection.y - 10}px`,
-                                                transform: 'translate(-50%, -100%)',
-                                            }}
-                                        >
-                                            <div className="font-medium">{hoveredBarSection.category}</div>
-                                            <div className="text-muted-foreground">${hoveredBarSection.value.toFixed(2)}</div>
-                                        </div>
-                                    )}
+                                    <div
+                                        ref={tooltipRef}
+                                        className="absolute z-50 px-3 py-2 text-sm bg-popover border border-border rounded-md shadow-lg pointer-events-none"
+                                        style={{
+                                            display: 'none',
+                                            left: '0px',
+                                            top: '0px',
+                                            transform: 'translate(-50%, -100%)',
+                                        }}
+                                    >
+                                        <div className="font-medium" id="tooltip-category"></div>
+                                        <div className="text-muted-foreground" id="tooltip-value"></div>
+                                    </div>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chartData}
@@ -864,9 +867,28 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                         name={key}
                                                         shape={<CustomBar
                                                             onHover={(dataKey: string, value: number, x: number, y: number) => {
+                                                                // Direct DOM manipulation for instant tooltip updates
+                                                                const tooltip = tooltipRef.current;
+                                                                if (tooltip) {
+                                                                    tooltip.style.display = 'block';
+                                                                    tooltip.style.left = `${x}px`;
+                                                                    tooltip.style.top = `${y - 10}px`;
+                                                                    const categoryEl = tooltip.querySelector('#tooltip-category');
+                                                                    const valueEl = tooltip.querySelector('#tooltip-value');
+                                                                    if (categoryEl) categoryEl.textContent = dataKey;
+                                                                    if (valueEl) valueEl.textContent = `$${value.toFixed(2)}`;
+                                                                }
+                                                                hoveredBarRef.current = { category: dataKey, value };
                                                                 setHoveredBarSection({ category: dataKey, value, x, y });
                                                             }}
-                                                            onLeave={() => setHoveredBarSection(null)}
+                                                            onLeave={() => {
+                                                                const tooltip = tooltipRef.current;
+                                                                if (tooltip) {
+                                                                    tooltip.style.display = 'none';
+                                                                }
+                                                                hoveredBarRef.current = null;
+                                                                setHoveredBarSection(null);
+                                                            }}
                                                             isHovered={isHovered}
                                                             isDimmed={isDimmed}
                                                         />}
