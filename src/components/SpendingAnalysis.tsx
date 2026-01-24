@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw, Building2, X, Wallet } from 'lucide-react';
@@ -119,6 +119,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const filterDropdownRef = useRef<HTMLDivElement>(null);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
     const [importedAccounts, setImportedAccounts] = useState<ImportedAccount[]>([]);
     const [importedTransactions, setImportedTransactions] = useState<Transaction[]>([]);
@@ -150,6 +151,22 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
     }, [accounts, importedAccounts]);
 
     // No longer auto-selecting accounts - user must select manually
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+                setIsFilterOpen(false);
+            }
+        };
+
+        if (isFilterOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => {
+                document.removeEventListener('mousedown', handleClickOutside);
+            };
+        }
+    }, [isFilterOpen]);
 
     const getDateRange = (range: TimeRange) => {
         const end = new Date();
@@ -428,7 +445,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
             } else if (chartGroupBy === 'account') {
                 const account = accounts.find(a => a.account_id === tx.account_id) || 
                                importedAccounts.find(a => a.account_id === tx.account_id);
-                key = account ? account.name : 'Unknown';
+                key = account ? `${account.institution_name} - ${account.name}` : 'Unknown';
             } else { // institution
                 const account = accounts.find(a => a.account_id === tx.account_id) || 
                                importedAccounts.find(a => a.account_id === tx.account_id);
@@ -465,7 +482,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     } else if (chartGroupBy === 'account') {
                         const account = accounts.find(a => a.account_id === tx.account_id) || 
                                        importedAccounts.find(a => a.account_id === tx.account_id);
-                        key = account ? account.name : 'Unknown';
+                        key = account ? `${account.institution_name} - ${account.name}` : 'Unknown';
                     } else { // institution
                         const account = accounts.find(a => a.account_id === tx.account_id) || 
                                        importedAccounts.find(a => a.account_id === tx.account_id);
@@ -584,7 +601,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                     
                     <div className="flex justify-end w-full gap-2">
                         <ImportTransactionsDialog onImport={handleImport} />
-                        <div className="relative">
+                        <div className="relative" ref={filterDropdownRef}>
                             <Button 
                                 variant="outline" 
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -815,7 +832,10 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         })}
                                     </div>
                                 )}
-                                <div className="w-full h-96 relative">
+                                <div 
+                                    className="w-full h-96 relative"
+                                    onMouseLeave={() => setHoveredBarSection(null)}
+                                >
                                 {/* Custom tooltip */}
                                 {hoveredBarSection && (
                                     <div
@@ -833,8 +853,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
                                         data={chartData}
-                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                                        onMouseLeave={() => setHoveredBarSection(null)}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 10 }}
                                     >
                                         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                         <XAxis 
