@@ -837,7 +837,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart
                                             data={chartData}
-                                            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                                            margin={{ top: 20, right: 20, left: 5, bottom: 20 }}
                                             onMouseLeave={() => setHoveredBarSection(null)}
                                         >
                                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
