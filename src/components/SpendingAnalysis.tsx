@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Filter, ArrowUp, ArrowDown, RotateCcw } from 'lucide-react';
+
+type TimeRange = '1D' | '1W' | '30D' | '3M' | '6M' | '1Y' | '2Y' | 'YTD' | 'MAX' | 'CUSTOM';
 
 interface Transaction {
     transaction_id: string;
@@ -25,14 +27,17 @@ interface SpendingAnalysisProps {
 }
 
 const formatCurrency = (amount: number) => {
-    // Plaid: Positive amount = money spent (except for credit card payments usually?)
-    // Standard interpretation: +ve is outflow, -ve is inflow for Plaid transactions usually.
-    // Let's display it as is, or maybe inverse for clarity if the user expects "Income" vs "Expense".
-    // Usually in spending analysis, we just show the amount.
     return amount.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     });
+};
+
+const formatDateToLocalYMD = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 const formatDate = (dateString: string) => {
@@ -45,6 +50,16 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
     const [loading, setLoading] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+    // Time range state
+    const [selectedRange, setSelectedRange] = useState<TimeRange>('30D');
+    const [customStart, setCustomStart] = useState<string>(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return formatDateToLocalYMD(d);
+    });
+    const [customEnd, setCustomEnd] = useState<string>(() => formatDateToLocalYMD(new Date()));
+    const [dateError, setDateError] = useState<string | null>(null);
 
     // Filter only Depository and Credit accounts for selection
     const eligibleAccounts = useMemo(() => {
@@ -60,6 +75,57 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
             setSelectedAccountIds(new Set(eligibleAccounts.map(a => a.account_id)));
         }
     }, [eligibleAccounts.length]); // Run once when accounts are loaded
+
+    const getDateRange = (range: TimeRange) => {
+        const end = new Date();
+        const start = new Date();
+
+        if (range === 'CUSTOM') {
+            const s = new Date(customStart);
+            s.setHours(0, 0, 0, 0);
+
+            const [sY, sM, sD] = customStart.split('-').map(Number);
+            start.setFullYear(sY, sM - 1, sD);
+            start.setHours(0, 0, 0, 0);
+
+            const [eY, eM, eD] = customEnd.split('-').map(Number);
+            end.setFullYear(eY, eM - 1, eD);
+            end.setHours(23, 59, 59, 999);
+            
+            return { start, end };
+        }
+
+        switch (range) {
+            case '1D':
+                start.setDate(end.getDate() - 1);
+                break;
+            case '1W':
+                start.setDate(end.getDate() - 7);
+                break;
+            case '30D':
+                start.setDate(end.getDate() - 30);
+                break;
+            case '3M':
+                start.setMonth(end.getMonth() - 3);
+                break;
+            case '6M':
+                start.setMonth(end.getMonth() - 6);
+                break;
+            case '1Y':
+                start.setFullYear(end.getFullYear() - 1);
+                break;
+            case '2Y':
+                start.setFullYear(end.getFullYear() - 2);
+                break;
+            case 'YTD':
+                start.setMonth(0, 1);
+                break;
+            case 'MAX':
+                start.setFullYear(end.getFullYear() - 10);
+                break;
+        }
+        return { start, end };
+    };
 
     const toggleAccount = (accountId: string) => {
         setSelectedAccountIds(prev => {
@@ -87,6 +153,17 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
             return;
         }
 
+        // Check custom date validity
+        if (selectedRange === 'CUSTOM') {
+            if (customStart > customEnd) {
+                setDateError('Start date cannot be after end date');
+                setTransactions([]);
+                setLoading(false);
+                return;
+            }
+            setDateError(null);
+        }
+
         setLoading(true);
         try {
             // Group selected account IDs by access_token
@@ -102,11 +179,10 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
                 }
             });
 
-            // Calculate date range (e.g., last 30 days)
-            const endDate = new Date().toISOString().split('T')[0];
-            const startDateObj = new Date();
-            startDateObj.setDate(startDateObj.getDate() - 30);
-            const startDate = startDateObj.toISOString().split('T')[0];
+            // Calculate date range
+            const { start, end } = getDateRange(selectedRange);
+            const endDate = end.toISOString().split('T')[0];
+            const startDate = start.toISOString().split('T')[0];
 
             const promises = Object.entries(accountsByToken).map(([token, ids]) => 
                 fetch('/api/get_transactions', {
@@ -141,8 +217,7 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
 
     useEffect(() => {
         fetchTransactions();
-    }, [selectedAccountIds]); // Re-fetch when selection changes? 
-    // Optimization: Maybe add a "Apply" button if datasets are huge, but for now auto-fetch is smoother.
+    }, [selectedAccountIds, selectedRange, customStart, customEnd]); 
 
     const sortedTransactions = useMemo(() => {
         return [...transactions].sort((a: any, b: any) => {
@@ -176,58 +251,108 @@ export default function SpendingAnalysis({ accounts, accessTokens }: SpendingAna
                 <div>
                     <h2 className="text-2xl font-semibold text-foreground">Spending Analysis</h2>
                     <p className="text-muted-foreground">
-                        Showing transactions for {selectedAccountIds.size} account{selectedAccountIds.size !== 1 && 's'} (Last 30 Days)
+                        Showing transactions for {selectedAccountIds.size} account{selectedAccountIds.size !== 1 && 's'}
                     </p>
                 </div>
                 
-                <div className="relative">
-                    <Button 
-                        variant="outline" 
-                        onClick={() => setIsFilterOpen(!isFilterOpen)}
-                        className="flex items-center gap-2"
-                    >
-                        <Filter className="h-4 w-4" />
-                        Filter Accounts
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
+                <div className="relative flex flex-col items-end gap-2">
+                    <div className="flex flex-wrap items-center bg-card p-1 rounded-lg border gap-0.5">
+                        {(['1D', '1W', '30D', '3M', '6M', '1Y', '2Y', 'YTD', 'MAX', 'CUSTOM'] as const).map((r) => (
+                            <Button
+                                key={r}
+                                variant="ghost"
+                                size="sm"
+                                className={`h-7 px-2 text-xs hover:bg-background ${selectedRange === r ? 'bg-background border hover:bg-background text-foreground' : 'text-muted-foreground'}`}
+                                onClick={() => setSelectedRange(r)}
+                            >
+                                {r === 'CUSTOM' ? 'Custom' : r}
+                            </Button>
+                        ))}
+                    </div>
 
-                    {isFilterOpen && (
-                        <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto z-50 rounded-md border bg-popover p-4 shadow-md text-popover-foreground">
-                            <div className="space-y-2">
-                                <div 
-                                    className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
-                                    onClick={toggleAll}
-                                >
-                                    <div className={`
-                                        flex h-4 w-4 items-center justify-center rounded border border-primary 
-                                        ${selectedAccountIds.size === eligibleAccounts.length ? 'bg-primary text-primary-foreground' : 'opacity-50'}
-                                    `}>
-                                        {selectedAccountIds.size === eligibleAccounts.length && <Check className="h-3 w-3" />}
-                                    </div>
-                                    <span className="text-sm font-medium">Select All</span>
-                                </div>
-                                <div className="h-px bg-border my-2" />
-                                {eligibleAccounts.map(account => (
-                                    <div 
-                                        key={account.account_id}
-                                        className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
-                                        onClick={() => toggleAccount(account.account_id)}
-                                    >
-                                        <div className={`
-                                            flex h-4 w-4 items-center justify-center rounded border border-primary 
-                                            ${selectedAccountIds.has(account.account_id) ? 'bg-primary text-primary-foreground' : 'opacity-50'}
-                                        `}>
-                                            {selectedAccountIds.has(account.account_id) && <Check className="h-3 w-3" />}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">{account.name}</span>
-                                            <span className="text-xs text-muted-foreground">{account.institution_name} • {account.mask}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                    {selectedRange === 'CUSTOM' && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <input 
+                                type="date" 
+                                value={customStart}
+                                onChange={(e) => setCustomStart(e.target.value)}
+                                className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                            />
+                            <span className="text-muted-foreground text-xs">to</span>
+                            <input 
+                                type="date" 
+                                value={customEnd}
+                                onChange={(e) => setCustomEnd(e.target.value)}
+                                className={`h-8 rounded-md border bg-card px-3 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${dateError ? 'border-red-500 text-red-500 focus-visible:ring-red-500' : 'border-input'}`}
+                            />
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                    const d = new Date();
+                                    d.setDate(d.getDate() - 30);
+                                    setCustomStart(formatDateToLocalYMD(d));
+                                    setCustomEnd(formatDateToLocalYMD(new Date()));
+                                }}
+                                title="Reset to past 30 days"
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                            </Button>
                         </div>
                     )}
+                    
+                    <div className="flex justify-end w-full">
+                        <div className="relative">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                className="flex items-center gap-2"
+                            >
+                                <Filter className="h-4 w-4" />
+                                Filter Accounts
+                                <ChevronDown className="h-4 w-4 opacity-50" />
+                            </Button>
+
+                            {isFilterOpen && (
+                                <div className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto z-50 rounded-md border bg-popover p-4 shadow-md text-popover-foreground">
+                                    <div className="space-y-2">
+                                        <div 
+                                            className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
+                                            onClick={toggleAll}
+                                        >
+                                            <div className={`
+                                                flex h-4 w-4 items-center justify-center rounded border border-primary 
+                                                ${selectedAccountIds.size === eligibleAccounts.length ? 'bg-primary text-primary-foreground' : 'opacity-50'}
+                                            `}>
+                                                {selectedAccountIds.size === eligibleAccounts.length && <Check className="h-3 w-3" />}
+                                            </div>
+                                            <span className="text-sm font-medium">Select All</span>
+                                        </div>
+                                        <div className="h-px bg-border my-2" />
+                                        {eligibleAccounts.map(account => (
+                                            <div 
+                                                key={account.account_id}
+                                                className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-2 rounded"
+                                                onClick={() => toggleAccount(account.account_id)}
+                                            >
+                                                <div className={`
+                                                    flex h-4 w-4 items-center justify-center rounded border border-primary 
+                                                    ${selectedAccountIds.has(account.account_id) ? 'bg-primary text-primary-foreground' : 'opacity-50'}
+                                                `}>
+                                                    {selectedAccountIds.has(account.account_id) && <Check className="h-3 w-3" />}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-medium">{account.name}</span>
+                                                    <span className="text-xs text-muted-foreground">{account.institution_name} • {account.mask}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
