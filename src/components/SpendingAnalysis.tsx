@@ -939,12 +939,12 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                                         backgroundColor: isHidden ? undefined : chartColors.colorMap[key]
                                                     }}
                                                 >
-                                                    <div
-                                                        className="w-2 h-2 rounded-full"
-                                                        style={{ backgroundColor: chartColors.colorMap[key] }}
-                                                    />
-                                                    <span>{key}</span>
                                                     {!isHidden && <X className="h-3 w-3" />}
+                                                    {isHidden && <div
+                                                        className="w-2 h-2 m-0.5 rounded-full"
+                                                        style={{ backgroundColor: chartColors.colorMap[key] }}
+                                                    />}
+                                                    <span>{key}</span>
                                                 </button>
                                             );
                                         })}
