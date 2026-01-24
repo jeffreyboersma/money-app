@@ -115,12 +115,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
         return [...plaidAccounts, ...importedAccounts];
     }, [accounts, importedAccounts]);
 
-    // Initialize with all eligible accounts selected
-    useEffect(() => {
-        if (eligibleAccounts.length > 0 && selectedAccountIds.size === 0) {
-            setSelectedAccountIds(new Set(eligibleAccounts.map(a => a.account_id)));
-        }
-    }, [eligibleAccounts.length]); // Run once when accounts are loaded
+    // No longer auto-selecting accounts - user must select manually
 
     const getDateRange = (range: TimeRange) => {
         const end = new Date();
@@ -558,6 +553,22 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                         <div className="flex flex-col items-center justify-center py-12 space-y-4">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="text-sm text-muted-foreground">Loading transactions...</p>
+                        </div>
+                    ) : selectedAccountIds.size === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                            <Filter className="h-12 w-12 text-muted-foreground/50" />
+                            <div className="text-center space-y-2">
+                                <p className="text-sm font-medium text-foreground">No accounts selected</p>
+                                <p className="text-sm text-muted-foreground">Select accounts to view and analyze your transactions</p>
+                            </div>
+                            <Button
+                                variant="default"
+                                onClick={() => setIsFilterOpen(true)}
+                                className="flex items-center gap-2"
+                            >
+                                <Filter className="h-4 w-4" />
+                                Select Accounts
+                            </Button>
                         </div>
                     ) : transactions.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
