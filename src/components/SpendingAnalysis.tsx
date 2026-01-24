@@ -105,9 +105,14 @@ const CustomBar = (props: any) => {
                 opacity={isDimmed ? 0.3 : 1}
                 stroke={isHovered ? '#ffffff' : 'none'}
                 strokeWidth={isHovered ? 2 : 0}
-                onMouseEnter={(e) => onHover(dataKey, payload[dataKey], x + width / 2, y)}
-                onMouseMove={(e) => onHover(dataKey, payload[dataKey], x + width / 2, y)}
-                onMouseLeave={onLeave}
+                onMouseEnter={(e) => {
+                    e.stopPropagation();
+                    onHover(dataKey, payload[dataKey], x + width / 2, y);
+                }}
+                onMouseLeave={(e) => {
+                    e.stopPropagation();
+                    onLeave();
+                }}
                 style={{ cursor: 'pointer' }}
             />
         </g>
@@ -832,10 +837,7 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                         })}
                                     </div>
                                 )}
-                                <div 
-                                    className="w-full h-96 relative"
-                                    onMouseLeave={() => setHoveredBarSection(null)}
-                                >
+                                <div className="w-full h-96 relative">
                                 {/* Custom tooltip */}
                                 {hoveredBarSection && (
                                     <div
