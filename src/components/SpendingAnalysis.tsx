@@ -911,13 +911,13 @@ export default function SpendingAnalysis({ accounts, accessTokens, onAccountClic
                                             <>
                                                 <button
                                                     onClick={() => setHiddenChartItems(new Set())}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 border border-primary"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90"
                                                 >
                                                     Select All
                                                 </button>
                                                 <button
                                                     onClick={() => setHiddenChartItems(new Set(chartColors.keys))}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all bg-muted text-muted-foreground hover:bg-muted/80"
                                                 >
                                                     Remove All
                                                 </button>
